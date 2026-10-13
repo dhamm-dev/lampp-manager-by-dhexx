@@ -3,9 +3,9 @@ Manager lokal buat project di `/opt/lampp/htdocs` — Design A (dense utility).
 
 ## Jalanin
 ```bash
-project-control          # buka dashboard (auto-start service)
-project-control edit PAW05
-project-control edit PAW05 --subl
+project-control                 # buka dashboard (auto-start service)
+project-control edit (folder)   # buka project di Antigravity
+project-control edit (folder) --subl  # buka project di Sublime
 project-control status
 project-control logs
 ```
@@ -14,7 +14,7 @@ Manual:
 ```bash
 ~/.local/bin/project-control
 systemctl --user start lampp-manager
-http://localhost:8888  (admin / admin123 — GANTI!)
+http://localhost:8888  (login pakai user di .env)
 ```
 
 ## Setup sekali
