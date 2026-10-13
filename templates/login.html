@@ -6,38 +6,89 @@
 <title>Login — LAMPP Manager</title>
 <link rel="icon" type="image/png" href="/static/icons/favicon.png">
 <script src="https://cdn.tailwindcss.com"></script>
+<style>
+  .stack{display:grid}
+  .pane{grid-area:1/1;min-width:0}
+  .pane1{transition:opacity .18s ease}
+  .pane2{opacity:0;transform:translateY(56px);pointer-events:none;transition:opacity .3s ease,transform .3s ease}
+  .stack.step2 .pane1{opacity:0;pointer-events:none}
+  .stack.step2 .pane2{opacity:1;transform:none;pointer-events:auto;transition:opacity .45s ease,transform .55s cubic-bezier(.22,.9,.24,1)}
+  .stack.leaving .pane1 .shard{animation:pecah .3s ease-in forwards;animation-delay:calc(var(--i,0)*45ms)}
+  @keyframes pecah{to{opacity:0;transform:translate(var(--dx,0px),var(--dy,12px)) rotate(var(--rr,0deg)) scale(.92)}}
+  @media (prefers-reduced-motion:reduce){.slide-track,.pane2,.pane1{transition:none}.stack.leaving .pane1 .shard{animation:none}}
+</style>
 </head>
 <body class="bg-stone-50 text-stone-900" style="font-family:system-ui,-apple-system,'Segoe UI',sans-serif">
 <div class="min-h-screen flex items-center justify-center px-4">
-  <div class="w-full max-w-sm bg-white border border-stone-200 rounded-lg p-6">
-    <div class="flex items-center gap-2 mb-1">
-      <div class="w-8 h-8 rounded overflow-hidden bg-stone-900 text-white flex items-center justify-center text-sm font-bold shrink-0 relative"><span>L</span><img src="/static/icons/logo.png" alt="" class="absolute inset-0 w-8 h-8 object-cover" onerror="this.remove()"></div>
-      <div>
-        <div class="text-sm font-semibold">LAMPP Manager</div>
-        <div class="text-xs text-stone-500 font-mono">localhost:8888 • htdocs/</div>
+  <div class="w-full max-w-sm">
+    <div id="slider" class="stack bg-white border border-stone-200 rounded-lg p-6">
+      <!-- STEP 1: username -->
+      <div class="pane pane1">
+        <div class="shard flex items-center gap-2 mb-1" style="--i:0;--dx:-16px;--dy:-10px;--rr:-4deg">
+          <div class="w-8 h-8 rounded overflow-hidden bg-stone-900 text-white flex items-center justify-center text-sm font-bold shrink-0 relative"><span>L</span><img src="/static/icons/logo.png" alt="" class="absolute inset-0 w-8 h-8 object-cover" onerror="this.remove()"></div>
+          <div>
+            <div class="text-sm font-semibold">LAMPP Manager</div>
+            <div class="text-xs text-stone-500 font-mono">localhost:8888 • htdocs/</div>
+          </div>
+        </div>
+        <p class="shard text-xs text-stone-500 mb-4" style="--i:1;--dx:14px;--dy:-6px;--rr:3deg">Siapa kamu?</p>
+        <label class="shard text-xs font-medium block" style="--i:2;--dx:-10px;--dy:8px;--rr:-2deg">Username</label>
+        <input id="u" class="shard mt-1 w-full border border-stone-200 rounded px-3 py-2 text-sm outline-none focus:border-stone-900" style="--i:3;--dx:0px;--dy:14px;--rr:0deg" placeholder="username" autocomplete="username" autofocus>
+        <button id="nextBtn" class="shard mt-4 w-full bg-stone-900 text-white text-sm rounded py-2 hover:bg-stone-800" style="--i:4;--dx:0px;--dy:18px;--rr:0deg">Lanjut →</button>
+        <p class="shard text-center text-[11px] text-stone-400 mt-3" style="--i:5;--dx:12px;--dy:14px;--rr:2deg">langkah 1 dari 2</p>
+      </div>
+      <!-- STEP 2: password -->
+      <div class="pane pane2">
+        <div class="flex items-center gap-2 mb-1">
+          <button id="backBtn" title="Kembali" class="w-8 h-8 rounded border border-stone-200 flex items-center justify-center hover:border-stone-900 shrink-0">←</button>
+          <div class="min-w-0">
+            <div class="text-sm font-semibold truncate" id="whoLabel">…</div>
+            <div class="text-xs text-stone-500 font-mono">masukkan password</div>
+          </div>
+        </div>
+        <label class="text-xs font-medium mt-3 block">Password</label>
+        <input id="p" type="password" class="mt-1 w-full border border-stone-200 rounded px-3 py-2 text-sm outline-none focus:border-stone-900" placeholder="••••••••" autocomplete="current-password">
+        <div id="err" class="hidden text-xs text-red-600 mt-2"></div>
+        <button id="btn" class="mt-4 w-full bg-stone-900 text-white text-sm rounded py-2 hover:bg-stone-800">Masuk</button>
+        <p class="text-center text-[11px] text-stone-400 mt-3">langkah 2 dari 2 • Esc untuk kembali</p>
       </div>
     </div>
-    <p class="text-xs text-stone-500 mb-4">Masuk untuk mengelola project LAMPP.</p>
-    <label class="text-xs font-medium">Username</label>
-    <input id="u" class="mt-1 w-full border border-stone-200 rounded px-3 py-2 text-sm outline-none focus:border-stone-900" placeholder="username" autocomplete="username" autofocus>
-    <label class="text-xs font-medium mt-3 block">Password</label>
-    <input id="p" type="password" class="mt-1 w-full border border-stone-200 rounded px-3 py-2 text-sm outline-none focus:border-stone-900" placeholder="••••••••">
-    <div id="err" class="hidden text-xs text-red-600 mt-2"></div>
-    <button id="btn" class="mt-4 w-full bg-stone-900 text-white text-sm rounded py-2 hover:bg-stone-800">Masuk</button>
     <p class="text-center text-[11px] text-stone-400 mt-3">by dhexx • <a href="https://github.com/dhamm-dev" target="_blank" rel="noopener" class="hover:text-stone-900 underline">GitHub</a></p>
   </div>
 </div>
 <script>
-const u=document.getElementById('u'),p=document.getElementById('p'),err=document.getElementById('err');
-async function login(){
+const slider=document.getElementById('slider'),u=document.getElementById('u'),p=document.getElementById('p'),err=document.getElementById('err'),who=document.getElementById('whoLabel');
+const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let leaving=false;
+function goPass(){
+  if(!u.value.trim()){u.focus();return;}
+  if(leaving)return;
+  who.textContent=u.value.trim();
   err.classList.add('hidden');
-  const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u.value,password:p.value})});
-  if(r.ok){location.href='/';}else{const j=await r.json();err.textContent=j.error||'gagal';err.classList.remove('hidden');}
+  if(reduceMotion){slider.classList.add('step2');p.focus();return;}
+  leaving=true;
+  slider.classList.add('leaving');
+  setTimeout(()=>{slider.classList.add('step2');setTimeout(()=>p.focus(),250);leaving=false;},360);
 }
+function goUser(){
+  slider.classList.remove('step2');
+  setTimeout(()=>slider.classList.remove('leaving'),60);
+  err.classList.add('hidden');
+  setTimeout(()=>u.focus(),120);
+}
+async function login(){
+  if(!p.value){p.focus();return;}
+  err.classList.add('hidden');
+  const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u.value.trim(),password:p.value})});
+  if(r.ok){location.href='/';}else{const j=await r.json();err.textContent=j.error||'gagal';err.classList.remove('hidden');p.select();}
+}
+document.getElementById('nextBtn').onclick=goPass;
+document.getElementById('backBtn').onclick=goUser;
 document.getElementById('btn').onclick=login;
 u.focus();
-u.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();p.focus();}});
-p.addEventListener('keydown',e=>{if(e.key==='Enter')login();});
+u.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();goPass();}});
+p.addEventListener('keydown',e=>{if(e.key==='Enter')login();if(e.key==='Backspace'&&!p.value)goUser();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&slider.classList.contains('step2'))goUser();});
 </script>
 </body>
 </html>
