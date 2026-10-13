@@ -4,6 +4,13 @@ Local web manager for XAMPP/LAMPP on Linux — project library, file CRUD + uplo
 
 Built with Flask. Stays running even when Apache is down, so you can always start your stack back up.
 
+## Screenshots
+
+| Login (step 1 → 2) | Dashboard |
+|---|---|
+| ![Login step 1](docs/login-step1.png) | ![Dashboard](docs/dashboard.png) |
+| ![Login step 2](docs/login-step2.png) | Project library with service status, start/stop controls, and database tab. |
+
 ## Features
 
 - **Project library** — grid/list view of `htdocs` with search (`Ctrl/⌘ + K`), file counts, sizes, and modification dates
@@ -103,6 +110,7 @@ lampp-manager/
 ├── app.py                    # Flask backend (auth, projects, files, db, services)
 ├── templates/                # login.html, index.html (Tailwind + Lucide, no build step)
 ├── static/icons/             # editor icons, logo, favicon
+├── docs/                     # screenshots for README
 ├── project-control           # CLI shortcut (source; installed to ~/.local/bin/)
 ├── lampp-manager.service     # systemd --user unit (source; installed to ~/.config/systemd/user/)
 ├── sudoers-lampp-manager     # scoped NOPASSWD rule (source; installed to /etc/sudoers.d/)
