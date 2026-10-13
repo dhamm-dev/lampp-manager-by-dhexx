@@ -1,0 +1,17 @@
+[Unit]
+Description=LAMPP Project Controller (Flask :8888)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Projects/lampp-manager
+EnvironmentFile=%h/Projects/lampp-manager/.env
+ExecStart=%h/Projects/lampp-manager/.venv/bin/python %h/Projects/lampp-manager/app.py
+Restart=on-failure
+RestartSec=3
+Environment=DISPLAY=:0
+Environment=WAYLAND_DISPLAY=wayland-0
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target

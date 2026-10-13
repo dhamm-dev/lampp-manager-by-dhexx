@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# project-control — shortcut LAMPP Manager
+# pakai: project-control | edit <nama> [--subl] | status | logs | path <nama>
+set -e
+BASE="$HOME/Projects/lampp-manager"
+PORT="${PORT:-8888}"
+URL="http://localhost:${PORT}"
+SVC="lampp-manager.service"
+HTDOCS="/opt/lampp/htdocs"
+
+load_env() { [ -f "$BASE/.env" ] && set -a && . "$BASE/.env" && set +a && URL="http://localhost:${PORT:-8888}"; }
+
+ensure_up() {
+  if ! systemctl --user is-active --quiet "$SVC" 2>/dev/null; then
+    echo "▶ starting $SVC…"
+    systemctl --user start "$SVC" 2>/dev/null || {
+      echo "fallback: run manual…"
+      nohup "$BASE/.venv/bin/python" "$BASE/app.py" >/tmp/lampp-manager.log 2>&1 &
+    }
+    for i in $(seq 1 30); do curl -sf "$URL/api/me" >/dev/null 2>&1 && break; sleep 0.5; done
+  fi
+}
+
+open_url() { xdg-open "$1" >/dev/null 2>&1 & }
+
+load_env
+cmd="${1:-open}"
+case "$cmd" in
+  open|"")
+    ensure_up; echo "→ $URL"; open_url "$URL";;
+  edit)
+    name="${2:-}"; ed="${3:-}"
+    [ -z "$name" ] && echo "pakai: project-control edit <nama-project> [--subl]" && exit 1
+    target="$HTDOCS/$name"
+    [ ! -e "$target" ] && echo "tidak ada: $target" && exit 1
+    if [ "$ed" = "--subl" ]; then /usr/bin/subl "$target" >/dev/null 2>&1 &
+    else /usr/bin/antigravity-ide "$target" >/dev/null 2>&1 & fi
+    echo "→ dibuka: $target";;
+  path)
+    name="${2:-}"; [ -z "$name" ] && echo "$HTDOCS" && exit 0
+    echo "$HTDOCS/$name";;
+  status)
+    echo "— manager: $(systemctl --user is-active "$SVC" 2>/dev/null)"
+    /opt/lampp/ctlscript.sh status 2>&1 | head -n 10
+    curl -sf "$URL/api/me" >/dev/null 2>&1 && echo "dashboard: $URL OK" || echo "dashboard: $URL (login dulu di browser)";;
+  logs)
+    journalctl --user -u "$SVC" -n 100 --no-pager 2>/dev/null || tail -n 100 /tmp/lampp-manager.log;;
+  stop) systemctl --user stop "$SVC"; echo "stopped";;
+  restart) systemctl --user restart "$SVC"; echo "restarted";;
+  *) echo "pakai: project-control [open|edit <nama> [--subl]|path <nama>|status|logs|stop|restart]";;
+esac
