@@ -1,0 +1,6 @@
+# LAMPP Manager — agar tombol Start/Stop jalan tanpa password.
+# Cara pasang (sekali saja):
+#   sudo cp ~/Projects/lampp-manager/sudoers-lampp-manager /etc/sudoers.d/lampp-manager
+#   sudo chmod 440 /etc/sudoers.d/lampp-manager
+#   sudo visudo -c
+dhexx ALL=(root) NOPASSWD: /opt/lampp/ctlscript.sh *

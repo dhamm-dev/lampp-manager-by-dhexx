@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LAMPP Manager</title>
+<link rel="icon" type="image/png" href="/static/icons/favicon.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+  .mono{font-family:ui-monospace,"JetBrains Mono","Cascadia Code",Menlo,monospace}
+  .card:hover .actions{opacity:1}
+  .actions{opacity:0;transition:opacity .12s}
+  @media (max-width:900px){.actions{opacity:1}}
+  ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#d6d3d1;border-radius:8px}
+</style>
+</head>
+<body class="bg-stone-50 text-stone-900 h-screen flex flex-col overflow-hidden">
+
+<!-- TOPBAR 48px -->
+<header class="h-12 shrink-0 bg-white border-b border-stone-200 flex items-center gap-3 px-3">
+  <div class="flex items-center gap-2 w-52">
+    <div class="w-7 h-7 rounded overflow-hidden bg-stone-900 text-white flex items-center justify-center text-xs font-bold shrink-0 relative"><span>L</span><img src="/static/icons/logo.png" alt="" class="absolute inset-0 w-7 h-7 object-cover" onerror="this.remove()"></div>
+    <div class="leading-tight">
+      <div class="text-[13px] font-semibold">LAMPP Manager</div>
+      <div class="text-[11px] text-stone-500 mono" id="htdocsLabel">htdocs/</div>
+    </div>
+  </div>
+  <button id="cmdkBtn" class="flex-1 max-w-md flex items-center gap-2 text-[13px] text-stone-500 border border-stone-200 rounded-md px-3 py-1.5 bg-stone-50 hover:border-stone-400">
+    <i data-lucide="search" class="w-3.5 h-3.5"></i>
+    <span>Cari project, file, database…</span>
+    <kbd class="ml-auto text-[11px] mono border border-stone-200 rounded px-1 bg-white">⌘K</kbd>
+  </button>
+  <div class="ml-auto flex items-center gap-2">
+    <span id="phpVer" class="hidden md:inline text-[11px] mono text-stone-500"></span>
+    <span id="pillApache" class="text-[11px] mono px-2 py-1 rounded border">Apache: …</span>
+    <span id="pillMysql" class="text-[11px] mono px-2 py-1 rounded border">MySQL: …</span>
+    <button id="logoutBtn" title="Logout" class="p-1.5 border border-stone-200 rounded hover:border-stone-900"><i data-lucide="log-out" class="w-4 h-4"></i></button>
+  </div>
+</header>
+
+<div class="flex-1 flex min-h-0">
+  <!-- SIDEBAR 220px -->
+  <aside class="w-56 shrink-0 bg-white border-r border-stone-200 flex flex-col p-3 gap-1 overflow-y-auto">
+    <div class="text-[11px] font-semibold text-stone-400 uppercase tracking-wide px-2 mb-1">Menu</div>
+    <button data-tab="projects" class="tabBtn flex items-center gap-2 text-[13px] px-2 py-1.5 rounded bg-stone-900 text-white"><i data-lucide="folder" class="w-4 h-4"></i>Projects</button>
+    <button data-tab="database" class="tabBtn flex items-center gap-2 text-[13px] px-2 py-1.5 rounded hover:bg-stone-100"><i data-lucide="database" class="w-4 h-4"></i>Database</button>
+    <div class="text-[11px] font-semibold text-stone-400 uppercase tracking-wide px-2 mt-4 mb-1">Service</div>
+    <div class="border border-stone-200 rounded-md p-2 space-y-2">
+      <div class="flex items-center justify-between text-[12px]"><span class="flex items-center gap-1.5"><i data-lucide="server" class="w-3.5 h-3.5"></i>Apache</span><span id="svcApache" class="mono text-[11px]">…</span></div>
+      <div class="flex gap-1">
+        <button onclick="svc('apache','start')" class="flex-1 text-[12px] border border-stone-200 rounded py-1 hover:border-emerald-600 hover:text-emerald-700 flex items-center justify-center gap-1"><i data-lucide="play" class="w-3 h-3"></i>Start</button>
+        <button onclick="svc('apache','stop')" class="flex-1 text-[12px] border border-stone-200 rounded py-1 hover:border-red-600 hover:text-red-700 flex items-center justify-center gap-1"><i data-lucide="square" class="w-3 h-3"></i>Stop</button>
+      </div>
+      <div class="flex items-center justify-between text-[12px]"><span class="flex items-center gap-1.5"><i data-lucide="database" class="w-3.5 h-3.5"></i>MySQL</span><span id="svcMysql" class="mono text-[11px]">…</span></div>
+      <div class="flex gap-1">
+        <button onclick="svc('mysql','start')" class="flex-1 text-[12px] border border-stone-200 rounded py-1 hover:border-emerald-600 hover:text-emerald-700 flex items-center justify-center gap-1"><i data-lucide="play" class="w-3 h-3"></i>Start</button>
+        <button onclick="svc('mysql','stop')" class="flex-1 text-[12px] border border-stone-200 rounded py-1 hover:border-red-600 hover:text-red-700 flex items-center justify-center gap-1"><i data-lucide="square" class="w-3 h-3"></i>Stop</button>
+      </div>
+      <a href="http://localhost/phpmyadmin" target="_blank" id="pmaLink" class="flex items-center justify-center gap-1 text-[12px] border border-stone-200 rounded py-1 hover:border-stone-900"><i data-lucide="external-link" class="w-3 h-3"></i>phpMyAdmin</a>
+    </div>
+    <div class="text-[11px] font-semibold text-stone-400 uppercase tracking-wide px-2 mt-4 mb-1">Aksi</div>
+    <button onclick="openModal('projectModal')" class="flex items-center gap-2 text-[13px] px-2 py-1.5 rounded border border-stone-200 hover:border-stone-900"><i data-lucide="plus" class="w-4 h-4"></i>New Project</button>
+    <button onclick="refreshAll()" class="flex items-center gap-2 text-[13px] px-2 py-1.5 rounded hover:bg-stone-100"><i data-lucide="refresh-cw" class="w-4 h-4"></i>Refresh</button>
+    <button onclick="openTerminalHint()" class="flex items-center gap-2 text-[13px] px-2 py-1.5 rounded hover:bg-stone-100"><i data-lucide="terminal" class="w-4 h-4"></i>Terminal</button>
+    <div class="mt-auto text-[11px] mono text-stone-400 px-2 pt-3">project-control<br>⌘K • grid/list</div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="flex-1 min-w-0 flex flex-col">
+    <!-- PROJECTS TAB -->
+    <section id="tab-projects" class="flex-1 flex flex-col min-h-0">
+      <div class="px-4 py-2.5 border-b border-stone-200 bg-white flex items-center gap-2 flex-wrap">
+        <nav id="crumb" class="flex items-center gap-1 text-[13px]"></nav>
+        <div class="ml-auto flex items-center gap-2">
+          <input id="searchInput" placeholder="Filter…" class="text-[13px] border border-stone-200 rounded-md px-2.5 py-1.5 w-44 outline-none focus:border-stone-900 bg-white">
+          <div class="flex border border-stone-200 rounded-md overflow-hidden">
+            <button id="viewGrid" class="px-2 py-1.5 bg-stone-900 text-white"><i data-lucide="layout-grid" class="w-4 h-4"></i></button>
+            <button id="viewList" class="px-2 py-1.5 bg-white"><i data-lucide="list" class="w-4 h-4"></i></button>
+          </div>
+          <button id="newBtn" onclick="curPath?openModal('fileModal'):openModal('projectModal')" class="text-[13px] bg-stone-900 text-white rounded-md px-3 py-1.5 flex items-center gap-1"><i data-lucide="plus" class="w-3.5 h-3.5"></i><span id="newBtnLabel">New Project</span></button>
+          <label class="text-[13px] border border-stone-200 rounded-md px-3 py-1.5 cursor-pointer hover:border-stone-900 flex items-center gap-1"><i data-lucide="upload" class="w-3.5 h-3.5"></i>Upload<input id="uploadInput" type="file" multiple class="hidden"></label>
+        </div>
+      </div>
+      <div id="content" class="flex-1 overflow-y-auto p-4"></div>
+    </section>
+
+    <!-- DATABASE TAB -->
+    <section id="tab-database" class="flex-1 hidden flex-col min-h-0">
+      <div class="px-4 py-2.5 border-b border-stone-200 bg-white flex items-center gap-2">
+        <span class="text-[13px] font-semibold">Database</span>
+        <span id="dbCount" class="text-[11px] mono text-stone-500"></span>
+        <div class="ml-auto flex gap-2">
+          <input id="dbSearch" placeholder="Filter DB…" class="text-[13px] border border-stone-200 rounded-md px-2.5 py-1.5 w-44 outline-none focus:border-stone-900">
+          <button onclick="openModal('dbModal')" class="text-[13px] bg-stone-900 text-white rounded-md px-3 py-1.5 flex items-center gap-1"><i data-lucide="plus" class="w-3.5 h-3.5"></i>New DB</button>
+          <label class="text-[13px] border border-stone-200 rounded-md px-3 py-1.5 cursor-pointer hover:border-stone-900">Import .sql<input id="sqlInput" type="file" accept=".sql" class="hidden"></label>
+        </div>
+      </div>
+      <div id="dbContent" class="flex-1 overflow-y-auto p-4"></div>
+    </section>
+
+    <!-- STATUSBAR -->
+    <footer class="h-7 shrink-0 bg-white border-t border-stone-200 flex items-center gap-3 px-3 text-[11px] mono text-stone-500">
+      <span id="sbProjects">…</span><span>•</span><span id="sbPath">/opt/lampp/htdocs</span><span>•</span><span id="sbTime">…</span>
+      <span class="ml-auto flex items-center gap-1.5">Flask :8888 • project-control • by dhexx • <a href="https://github.com/dhamm-dev" target="_blank" rel="noopener" class="flex items-center gap-1 hover:text-stone-900"><i data-lucide="github" class="w-3 h-3"></i>GitHub</a></span>
+    </footer>
+  </main>
+</div>
+
+<!-- CMDK -->
+<div id="cmdk" class="hidden fixed inset-0 bg-black/20 z-50 flex items-start justify-center pt-24 px-4">
+  <div class="w-full max-w-lg bg-white border border-stone-200 rounded-lg shadow-xl overflow-hidden">
+    <input id="cmdkInput" placeholder="Ketik project, file, database, aksi…" class="w-full px-4 py-3 text-sm outline-none border-b border-stone-200">
+    <div id="cmdkList" class="max-h-72 overflow-y-auto p-1"></div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div id="projectModal" class="hidden fixed inset-0 bg-black/20 z-50 flex items-center justify-center px-4">
+  <div class="bg-white border border-stone-200 rounded-lg w-full max-w-sm p-5">
+    <div class="text-sm font-semibold mb-3">New Project</div>
+    <label class="text-xs">Nama folder</label>
+    <input id="pjName" class="mt-1 w-full border border-stone-200 rounded px-3 py-2 text-sm outline-none focus:border-stone-900 mono" placeholder="PAW06">
+    <label class="text-xs mt-3 block">Template</label>
+    <select id="pjTpl" class="mt-1 w-full border border-stone-200 rounded px-3 py-2 text-sm"><option value="php">PHP (index.php + koneksi.php)</option><option value="html">HTML</option><option value="empty">Kosong</option></select>
+    <div class="flex gap-2 mt-4"><button onclick="closeModal('projectModal')" class="flex-1 border border-stone-200 rounded py-2 text-sm">Batal</button><button onclick="createProject()" class="flex-1 bg-stone-900 text-white rounded py-2 text-sm">Buat</button></div>
+  </div>
+</div>
+
+<div id="fileModal" class="hidden fixed inset-0 bg-black/20 z-50 flex items-center justify-center px-4">
+  <div class="bg-white border border-stone-200 rounded-lg w-full max-w-sm p-5">
+    <div class="text-sm font-semibold mb-3">Baru di <span id="fileModalPath" class="mono text-stone-500"></span></div>
+    <div class="flex gap-2 mb-3">
+      <button id="ftFile" onclick="setFileType('file')" class="flex-1 text-sm border rounded py-1.5 bg-stone-900 text-white">File</button>
+      <button id="ftDir" onclick="setFileType('dir')" class="flex-1 text-sm border rounded py-1.5">Folder</button>
+    </div>
+    <input id="fName" class="w-full border border-stone-200 rounded px-3 py-2 text-sm outline-none focus:border-stone-900 mono" placeholder="tugas-1.php">
+    <select id="fTpl" class="mt-2 w-full border border-stone-200 rounded px-3 py-2 text-sm"><option value="empty">Kosong</option><option value="php">PHP</option><option value="html">HTML</option><option value="koneksi">koneksi.php</option></select>
+    <div class="flex gap-2 mt-4"><button onclick="closeModal('fileModal')" class="flex-1 border border-stone-200 rounded py-2 text-sm">Batal</button><button onclick="createFile()" class="flex-1 bg-stone-900 text-white rounded py-2 text-sm">Buat</button></div>
+  </div>
+</div>
+
+<div id="renameModal" class="hidden fixed inset-0 bg-black/20 z-50 flex items-center justify-center px-4">
+  <div class="bg-white border border-stone-200 rounded-lg w-full max-w-sm p-5">
+    <div class="text-sm font-semibold mb-3">Rename</div>
+    <input id="rnName" class="w-full border border-stone-200 rounded px-3 py-2 text-sm mono outline-none focus:border-stone-900">
+    <div class="flex gap-2 mt-4"><button onclick="closeModal('renameModal')" class="flex-1 border border-stone-200 rounded py-2 text-sm">Batal</button><button onclick="doRename()" class="flex-1 bg-stone-900 text-white rounded py-2 text-sm">Simpan</button></div>
+  </div>
+</div>
+
+<div id="deleteModal" class="hidden fixed inset-0 bg-black/20 z-50 flex items-center justify-center px-4">
+  <div class="bg-white border border-stone-200 rounded-lg w-full max-w-sm p-5">
+    <div class="text-sm font-semibold">Hapus?</div>
+    <p id="delText" class="text-[13px] text-stone-500 mt-1 mono"></p>
+    <div class="flex gap-2 mt-4"><button onclick="closeModal('deleteModal')" class="flex-1 border border-stone-200 rounded py-2 text-sm">Batal</button><button onclick="doDelete()" class="flex-1 bg-red-600 text-white rounded py-2 text-sm">Hapus</button></div>
+  </div>
+</div>
+
+<div id="dbModal" class="hidden fixed inset-0 bg-black/20 z-50 flex items-center justify-center px-4">
+  <div class="bg-white border border-stone-200 rounded-lg w-full max-w-sm p-5">
+    <div class="text-sm font-semibold mb-3">New Database</div>
+    <input id="dbName" class="w-full border border-stone-200 rounded px-3 py-2 text-sm mono outline-none focus:border-stone-900" placeholder="db_paw06">
+    <div class="flex gap-2 mt-4"><button onclick="closeModal('dbModal')" class="flex-1 border border-stone-200 rounded py-2 text-sm">Batal</button><button onclick="createDB()" class="flex-1 bg-stone-900 text-white rounded py-2 text-sm">Buat</button></div>
+  </div>
+</div>
+
+<div id="toast" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 bg-stone-900 text-white text-[13px] px-4 py-2 rounded-md z-[60]"></div>
+
+<script>
+let curPath="", curIsProjectList=true, view="grid", fileType="file";
+let projectsCache=[], filesCache=[], dbCache=[];
+let renameTarget=null, deleteTarget=null;
+const ICO_AG='<img src="/static/icons/antigravity.png" alt="Ag" class="w-4 h-4" onerror="this.outerHTML=\'Ag\'">';
+const ICO_SB='<img src="/static/icons/sublime.png" alt="Sb" class="w-4 h-4" onerror="this.outerHTML=\'Sb\'">';
+
+const $=id=>document.getElementById(id);
+function toast(m){const t=$("toast");t.textContent=m;t.classList.remove("hidden");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.add("hidden"),2200);}
+function openModal(id){$(id).classList.remove("hidden");if(id==="fileModal")$("fileModalPath").textContent="/"+(curPath||"htdocs");}
+function closeModal(id){$(id).classList.add("hidden");}
+function setFileType(t){fileType=t;$("ftFile").className="flex-1 text-sm border rounded py-1.5 "+(t==="file"?"bg-stone-900 text-white":"");$("ftDir").className="flex-1 text-sm border rounded py-1.5 "+(t==="dir"?"bg-stone-900 text-white":"");$("fTpl").style.display=t==="file"?"":"none";}
+async function api(url,opt={}){const r=await fetch(url,opt);if(r.status===401){location.href="/login";throw 0;}const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||("HTTP "+r.status));return j;}
+
+async function refreshAll(){await Promise.all([loadStatus(),loadProjectsOrFiles(),loadDB()]);}
+async function loadStatus(){
+  try{
+    const s=await api("/api/status");
+    const pill=(el,on)=>{const e=$(el);e.textContent=(el.includes("Apache")?"Apache: ":"MySQL: ")+(on==="on"?"ON":on==="off"?"OFF":on);e.className="text-[11px] mono px-2 py-1 rounded border "+(on==="on"?"bg-emerald-50 border-emerald-200 text-emerald-700":on==="off"?"bg-stone-100 border-stone-200 text-stone-500":"bg-amber-50 border-amber-200 text-amber-700");};
+    pill("pillApache",s.apache);pill("pillMysql",s.mysql);
+    $("svcApache").textContent=s.apache.toUpperCase();$("svcMysql").textContent=s.mysql.toUpperCase();
+    $("phpVer").textContent=(s.php||"").split(" ").slice(0,2).join(" ");
+    $("sbProjects").textContent=s.project_count+" projects";$("sbTime").textContent=s.time;$("htdocsLabel").textContent=s.htdocs;
+    const pma=$("pmaLink");const on=s.apache==="on"&&s.mysql==="on";pma.classList.toggle("opacity-40",!on);pma.classList.toggle("pointer-events-none",!on);
+  }catch(e){}
+}
+async function svc(name,action){toast(name+" "+action+"…");try{const r=await api(`/api/service/${name}/${action}`,{method:"POST"});toast(r.ok?"OK":"Gagal — cek sudoers");loadStatus();}catch(e){toast(String(e.message||e));}}
+async function loadProjectsOrFiles(){
+  const q=$("searchInput").value||"";
+  if(!curPath){
+    curIsProjectList=true;$("newBtnLabel").textContent="New Project";
+    const j=await api("/api/projects?q="+encodeURIComponent(q));projectsCache=j.items;renderProjects();
+  }else{
+    curIsProjectList=false;$("newBtnLabel").textContent="New File";
+    const j=await api("/api/files?path="+encodeURIComponent(curPath)+"&q="+encodeURIComponent(q));filesCache=j.items;renderFiles(j);
+  }
+  lucide.createIcons();
+}
+function crumbHTML(parts){
+  let h=`<button onclick="nav('')" class="mono text-stone-500 hover:text-stone-900">htdocs</button>`;
+  let acc="";
+  parts.forEach((p,i)=>{acc+= (acc?"/":"")+p;h+=`<span class="text-stone-300">/</span><button onclick="nav('${acc}')" class="mono ${i===parts.length-1?"text-stone-900 font-semibold":"text-stone-500 hover:text-stone-900"}">${p}</button>`;});
+  return h;
+}
+function renderProjects(){
+  const parts=[];$("crumb").innerHTML=crumbHTML(parts);
+  const el=$("content");
+  if(!projectsCache.length){el.innerHTML=`<div class="text-center text-sm text-stone-400 py-16">Belum ada project. Klik New Project.</div>`;return;}
+  if(view==="grid"){
+    el.innerHTML=`<div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">`+projectsCache.map(p=>`
+    <div class="card bg-white border border-stone-200 rounded-lg p-3 hover:border-stone-900 transition group">
+      <div class="flex items-start gap-2">
+        <div class="w-8 h-8 rounded bg-stone-100 border border-stone-200 flex items-center justify-center shrink-0"><i data-lucide="folder" class="w-4 h-4"></i></div>
+        <div class="min-w-0"><div class="text-[13px] font-semibold truncate">${esc(p.name)}</div>
+        <div class="text-[11px] mono text-stone-500">${p.file_count} files • ${p.size_h} • ${p.mtime_h}</div></div>
+      </div>
+      <div class="flex gap-1 mt-2.5 flex-wrap">
+        <button onclick="nav('${esc(p.name)}')" class="text-[12px] bg-stone-900 text-white rounded px-2 py-1">Buka</button>
+        <a href="http://localhost/${encodeURIComponent(p.name)}" target="_blank" class="text-[12px] border border-stone-200 rounded px-2 py-1 hover:border-stone-900">Web</a>
+        <div class="actions flex gap-1 ml-auto">
+          <button title="Antigravity" onclick="openEd('${esc(p.name)}','antigravity')" class="p-1 border border-stone-200 rounded hover:border-stone-900 text-[11px] mono flex items-center">${ICO_AG}</button>
+          <button title="Sublime" onclick="openEd('${esc(p.name)}','sublime')" class="p-1 border border-stone-200 rounded hover:border-stone-900 text-[11px] mono flex items-center">${ICO_SB}</button>
+          <button onclick="askRename('pj','${esc(p.name)}')" class="p-1 border border-stone-200 rounded hover:border-stone-900"><i data-lucide="pencil" class="w-3 h-3"></i></button>
+          <button onclick="dupProject('${esc(p.name)}')" class="p-1 border border-stone-200 rounded hover:border-stone-900"><i data-lucide="copy" class="w-3 h-3"></i></button>
+          ${p.protected?"":`<button onclick="askDelete('pj','${esc(p.name)}')" class="p-1 border border-stone-200 rounded hover:border-red-600 hover:text-red-600"><i data-lucide="trash-2" class="w-3 h-3"></i></button>`}
+        </div>
+      </div>
+    </div>`).join("")+`</div>`;
+  }else{
+    el.innerHTML=`<div class="bg-white border border-stone-200 rounded-lg overflow-hidden"><table class="w-full text-[13px]">
+    <thead><tr class="text-left text-[11px] uppercase text-stone-400 border-b border-stone-200"><th class="px-3 py-2">Nama</th><th class="px-3 py-2">Files</th><th class="px-3 py-2">Size</th><th class="px-3 py-2">Diubah</th><th class="px-3 py-2 text-right">Aksi</th></tr></thead>
+    <tbody>`+projectsCache.map(p=>`<tr class="border-b border-stone-100 hover:bg-stone-50">
+      <td class="px-3 py-2"><button onclick="nav('${esc(p.name)}')" class="font-medium hover:underline mono">${esc(p.name)}</button></td>
+      <td class="px-3 py-2 mono text-stone-500">${p.file_count}</td><td class="px-3 py-2 mono text-stone-500">${p.size_h}</td><td class="px-3 py-2 mono text-stone-500">${p.mtime_h}</td>
+      <td class="px-3 py-2"><div class="flex gap-1 justify-end"><a href="http://localhost/${encodeURIComponent(p.name)}" target="_blank" class="text-[12px] border border-stone-200 rounded px-2 py-1">Web</a><button title="Buka di Antigravity" onclick="openEd('${esc(p.name)}','antigravity')" class="text-[11px] mono border border-stone-200 rounded px-2 py-1 flex items-center gap-1">${ICO_AG}</button><button title="Buka di Sublime" onclick="openEd('${esc(p.name)}','sublime')" class="text-[11px] mono border border-stone-200 rounded px-2 py-1 flex items-center gap-1">${ICO_SB}</button>${p.protected?"":`<button onclick="askDelete('pj','${esc(p.name)}')" class="text-[12px] border border-stone-200 rounded px-2 py-1 hover:border-red-600 hover:text-red-600">Hapus</button>`}</div></td></tr>`).join("")+`</tbody></table></div>`;
+  }
+  lucide.createIcons();
+}
+function renderFiles(j){
+  $("crumb").innerHTML=crumbHTML(j.breadcrumb);
+  const el=$("content");
+  if(!filesCache.length){el.innerHTML=`<div class="text-center text-sm text-stone-400 py-16">Folder kosong. Upload atau buat file baru.</div>`;return;}
+  el.innerHTML=`<div class="bg-white border border-stone-200 rounded-lg overflow-hidden"><table class="w-full text-[13px]">
+  <thead><tr class="text-left text-[11px] uppercase text-stone-400 border-b border-stone-200"><th class="px-3 py-2">Nama</th><th class="px-3 py-2">Size</th><th class="px-3 py-2">Diubah</th><th class="px-3 py-2 text-right">Aksi</th></tr></thead><tbody>
+  ${filesCache.map(f=>{const full=(curPath?curPath+"/":"")+f.name;return `<tr class="border-b border-stone-100 hover:bg-stone-50">
+    <td class="px-3 py-2"><button onclick="${f.is_dir?`nav('${esc(full)}')`:`dl('${esc(full)}')`}" class="flex items-center gap-2 hover:underline"><i data-lucide="${f.is_dir?"folder":"file-code"}" class="w-3.5 h-3.5 text-stone-400"></i><span class="mono">${esc(f.name)}</span></button></td>
+    <td class="px-3 py-2 mono text-stone-500">${f.is_dir?f.file_count+" files":f.size_h}</td><td class="px-3 py-2 mono text-stone-500">${f.mtime_h}</td>
+    <td class="px-3 py-2"><div class="flex gap-1 justify-end">
+      ${f.is_dir?`<button onclick="nav('${esc(full)}')" class="text-[12px] border border-stone-200 rounded px-2 py-1">Buka</button>`:`<button onclick="dl('${esc(full)}')" class="text-[12px] border border-stone-200 rounded px-2 py-1">Download</button>`}
+      <button onclick="askRename('f','${esc(full)}')" class="text-[12px] border border-stone-200 rounded px-2 py-1">Rename</button>
+      <button onclick="askDelete('f','${esc(full)}')" class="text-[12px] border border-stone-200 rounded px-2 py-1 hover:border-red-600 hover:text-red-600">Hapus</button>
+    </div></td></tr>`;}).join("")}</tbody></table></div>`;
+  lucide.createIcons();
+}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
+function nav(p){curPath=p;$("searchInput").value="";loadProjectsOrFiles();}
+function dl(p){window.open("/api/download?path="+encodeURIComponent(p),"_blank");}
+async function createProject(){
+  const name=$("pjName").value.trim(),tpl=$("pjTpl").value;
+  try{await api("/api/projects",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,template:tpl})});closeModal("projectModal");$("pjName").value="";toast("Project dibuat");loadProjectsOrFiles();loadStatus();}catch(e){toast(e.message);}
+}
+async function dupProject(n){try{const r=await api(`/api/projects/${encodeURIComponent(n)}/duplicate`,{method:"POST"});toast("Diduplikat → "+r.name);loadProjectsOrFiles();}catch(e){toast(e.message);}}
+function setFileType2(){}
+async function createFile(){
+  const name=$("fName").value.trim();
+  try{await api("/api/files",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({path:curPath,name,type:fileType,template:$("fTpl").value})});closeModal("fileModal");$("fName").value="";toast("Dibuat");loadProjectsOrFiles();}catch(e){toast(e.message);}
+}
+function askRename(kind,path){renameTarget={kind,path};$("rnName").value=path.split("/").pop();openModal("renameModal");}
+async function doRename(){
+  const v=$("rnName").value.trim();if(!v)return;
+  try{
+    if(renameTarget.kind==="pj")await api(`/api/projects/${encodeURIComponent(renameTarget.path)}/rename`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({newName:v})});
+    else await api("/api/files",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({path:renameTarget.path,newName:v})});
+    closeModal("renameModal");toast("Di-rename");loadProjectsOrFiles();
+  }catch(e){toast(e.message);}
+}
+function askDelete(kind,path){deleteTarget={kind,path};$("delText").textContent=(kind==="pj"?"project ":"")+path;openModal("deleteModal");}
+async function doDelete(){
+  try{
+    if(deleteTarget.kind==="pj")await api("/api/projects/"+encodeURIComponent(deleteTarget.path),{method:"DELETE"});
+    else await api("/api/files?path="+encodeURIComponent(deleteTarget.path),{method:"DELETE"});
+    closeModal("deleteModal");toast("Dihapus");loadProjectsOrFiles();loadStatus();
+  }catch(e){toast(e.message);}
+}
+async function openEd(path,editor){try{await api("/api/open",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({path,editor})});toast("Dibuka di "+editor);}catch(e){toast(e.message);}}
+$("uploadInput").addEventListener("change",async e=>{
+  const fd=new FormData();fd.append("path",curPath);[...e.target.files].forEach(f=>fd.append("files",f));
+  try{const r=await fetch("/api/upload",{method:"POST",body:fd});const j=await r.json();if(!r.ok)throw new Error(j.error);toast("Upload: "+(j.saved||[]).join(", "));loadProjectsOrFiles();}catch(err){toast(err.message);}e.target.value="";
+});
+$("searchInput").addEventListener("input",()=>{clearTimeout(window._st);window._st=setTimeout(loadProjectsOrFiles,250);});
+$("viewGrid").onclick=()=>{view="grid";$("viewGrid").className="px-2 py-1.5 bg-stone-900 text-white";$("viewList").className="px-2 py-1.5 bg-white";loadProjectsOrFiles();};
+$("viewList").onclick=()=>{view="list";$("viewList").className="px-2 py-1.5 bg-stone-900 text-white";$("viewGrid").className="px-2 py-1.5 bg-white";loadProjectsOrFiles();};
+document.querySelectorAll(".tabBtn").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".tabBtn").forEach(x=>x.className="tabBtn flex items-center gap-2 text-[13px] px-2 py-1.5 rounded hover:bg-stone-100");
+  b.className="tabBtn flex items-center gap-2 text-[13px] px-2 py-1.5 rounded bg-stone-900 text-white";
+  const t=b.dataset.tab;$("tab-projects").classList.toggle("hidden",t!=="projects");$("tab-projects").classList.toggle("flex",t==="projects");
+  $("tab-database").classList.toggle("hidden",t!=="database");$("tab-database").classList.toggle("flex",t==="database");
+  if(t==="database")loadDB();lucide.createIcons();
+});
+async function loadDB(){
+  const q=$("dbSearch").value||"";
+  try{
+    const j=await api("/api/databases?q="+encodeURIComponent(q));dbCache=j.items||[];
+    $("dbCount").textContent=j.running?dbCache.length+" databases":"MySQL mati";
+    $("dbContent").innerHTML=j.running?(dbCache.length?`<div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">`+dbCache.map(d=>`
+      <div class="bg-white border border-stone-200 rounded-lg p-3 hover:border-stone-900">
+        <div class="flex items-center gap-2"><i data-lucide="database" class="w-4 h-4 text-stone-400"></i><span class="text-[13px] font-semibold mono truncate">${esc(d.name)}</span></div>
+        <div class="text-[11px] mono text-stone-500 mt-1">${d.tables} tables</div>
+        <div class="flex gap-1 mt-2.5"><a href="${d.phpmyadmin}" target="_blank" class="text-[12px] bg-stone-900 text-white rounded px-2 py-1">phpMyAdmin</a>
+        ${d.protected?"":`<button onclick="dropDB('${esc(d.name)}')" class="text-[12px] border border-stone-200 rounded px-2 py-1 hover:border-red-600 hover:text-red-600">Drop</button>`}</div>
+      </div>`).join("")+`</div>`:`<div class="text-center text-sm text-stone-400 py-16">Belum ada database.</div>`):`<div class="text-center text-sm text-stone-400 py-16">MySQL mati. Start dulu dari sidebar.<br><span class="mono text-[11px]">${esc(j.error||"")}</span></div>`;
+  }catch(e){$("dbContent").innerHTML=`<div class="text-center text-sm text-red-500 py-16">${esc(e.message)}</div>`;}
+  lucide.createIcons();
+}
+async function createDB(){const n=$("dbName").value.trim();try{await api("/api/databases",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:n})});closeModal("dbModal");$("dbName").value="";toast("DB dibuat");loadDB();}catch(e){toast(e.message);}}
+async function dropDB(n){if(!confirm("Drop "+n+"?"))return;try{await api("/api/databases/"+encodeURIComponent(n),{method:"DELETE"});toast("DB dihapus");loadDB();}catch(e){toast(e.message);}}
+$("dbSearch").addEventListener("input",()=>{clearTimeout(window._dt);window._dt=setTimeout(loadDB,250);});
+$("sqlInput").addEventListener("change",async e=>{
+  const f=e.target.files[0];if(!f)return;const db=prompt("Import ke database apa? (harus sudah ada)");if(!db)return;
+  const fd=new FormData();fd.append("db",db);fd.append("file",f);
+  try{const r=await fetch("/api/import",{method:"POST",body:fd});const j=await r.json();if(!r.ok)throw new Error(j.error);toast("Import OK");loadDB();}catch(err){toast(err.message);}e.target.value="";
+});
+$("logoutBtn").onclick=async()=>{await fetch("/api/logout",{method:"POST"});location.href="/login";};
+function openTerminalHint(){toast("Terminal: project-control • edit • status • logs");}
+// CMDK
+const cmdk=$("cmdk"),cmdkInput=$("cmdkInput"),cmdkList=$("cmdkList");
+function openCmdk(){cmdk.classList.remove("hidden");cmdkInput.value="";renderCmdk("");setTimeout(()=>cmdkInput.focus(),30);}
+function closeCmdk(){cmdk.classList.add("hidden");}
+$("cmdkBtn").onclick=openCmdk;
+document.addEventListener("keydown",e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="k"){e.preventDefault();cmdk.classList.contains("hidden")?openCmdk():closeCmdk();}if(e.key==="Escape"){closeCmdk();["projectModal","fileModal","renameModal","deleteModal","dbModal"].forEach(closeModal);}});
+cmdk.addEventListener("click",e=>{if(e.target===cmdk)closeCmdk();});
+cmdkInput.addEventListener("input",()=>renderCmdk(cmdkInput.value.toLowerCase()));
+function renderCmdk(q){
+  const rows=[];
+  projectsCache.filter(p=>!q||p.name.toLowerCase().includes(q)).slice(0,6).forEach(p=>rows.push({label:"Project: "+p.name,fn:()=>{closeCmdk();nav(p.name);}}));
+  filesCache.filter(f=>!q||f.name.toLowerCase().includes(q)).slice(0,4).forEach(f=>rows.push({label:"File: "+f.name,fn:()=>{closeCmdk();dl((curPath?curPath+"/":"")+f.name);}}));
+  dbCache.filter(d=>!q||d.name.toLowerCase().includes(q)).slice(0,4).forEach(d=>rows.push({label:"DB: "+d.name,fn:()=>{closeCmdk();window.open(d.phpmyadmin,"_blank");}}));
+  ["start apache","stop apache","start mysql","new project"].filter(a=>!q||a.includes(q)).forEach(a=>rows.push({label:"Aksi: "+a,fn:()=>{closeCmdk();if(a==="new project")openModal("projectModal");else{const[s,v]=a.split(" ");svc(v,s);}}}));
+  cmdkList.innerHTML=rows.length?rows.map((r,i)=>`<button data-i="${i}" class="w-full text-left text-[13px] px-3 py-2 rounded hover:bg-stone-100 mono">${esc(r.label)}</button>`).join(""):`<div class="text-[13px] text-stone-400 px-3 py-4">Tidak ketemu.</div>`;
+  [...cmdkList.querySelectorAll("button")].forEach(b=>b.onclick=()=>rows[+b.dataset.i].fn());
+}
+refreshAll();setInterval(loadStatus,10000);lucide.createIcons();
+</script>
+</body>
+</html>

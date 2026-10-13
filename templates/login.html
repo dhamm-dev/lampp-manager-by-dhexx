@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login — LAMPP Manager</title>
+<link rel="icon" type="image/png" href="/static/icons/favicon.png">
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-stone-50 text-stone-900" style="font-family:system-ui,-apple-system,'Segoe UI',sans-serif">
+<div class="min-h-screen flex items-center justify-center px-4">
+  <div class="w-full max-w-sm bg-white border border-stone-200 rounded-lg p-6">
+    <div class="flex items-center gap-2 mb-1">
+      <div class="w-8 h-8 rounded overflow-hidden bg-stone-900 text-white flex items-center justify-center text-sm font-bold shrink-0 relative"><span>L</span><img src="/static/icons/logo.png" alt="" class="absolute inset-0 w-8 h-8 object-cover" onerror="this.remove()"></div>
+      <div>
+        <div class="text-sm font-semibold">LAMPP Manager</div>
+        <div class="text-xs text-stone-500 font-mono">localhost:8888 • htdocs/</div>
+      </div>
+    </div>
+    <p class="text-xs text-stone-500 mb-4">Masuk untuk mengelola project LAMPP.</p>
+    <label class="text-xs font-medium">Username</label>
+    <input id="u" class="mt-1 w-full border border-stone-200 rounded px-3 py-2 text-sm outline-none focus:border-stone-900" placeholder="username" autocomplete="username" autofocus>
+    <label class="text-xs font-medium mt-3 block">Password</label>
+    <input id="p" type="password" class="mt-1 w-full border border-stone-200 rounded px-3 py-2 text-sm outline-none focus:border-stone-900" placeholder="••••••••">
+    <div id="err" class="hidden text-xs text-red-600 mt-2"></div>
+    <button id="btn" class="mt-4 w-full bg-stone-900 text-white text-sm rounded py-2 hover:bg-stone-800">Masuk</button>
+    <p class="text-center text-[11px] text-stone-400 mt-3">by dhexx • <a href="https://github.com/dhamm-dev" target="_blank" rel="noopener" class="hover:text-stone-900 underline">GitHub</a></p>
+  </div>
+</div>
+<script>
+const u=document.getElementById('u'),p=document.getElementById('p'),err=document.getElementById('err');
+async function login(){
+  err.classList.add('hidden');
+  const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u.value,password:p.value})});
+  if(r.ok){location.href='/';}else{const j=await r.json();err.textContent=j.error||'gagal';err.classList.remove('hidden');}
+}
+document.getElementById('btn').onclick=login;
+u.focus();
+u.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();p.focus();}});
+p.addEventListener('keydown',e=>{if(e.key==='Enter')login();});
+</script>
+</body>
+</html>
