@@ -63,7 +63,6 @@
     <div class="text-[11px] font-semibold text-stone-400 uppercase tracking-wide px-2 mt-4 mb-1">Aksi</div>
     <button onclick="openModal('projectModal')" class="flex items-center gap-2 text-[13px] px-2 py-1.5 rounded border border-stone-200 hover:border-stone-900"><i data-lucide="plus" class="w-4 h-4"></i>New Project</button>
     <button onclick="refreshAll()" class="flex items-center gap-2 text-[13px] px-2 py-1.5 rounded hover:bg-stone-100"><i data-lucide="refresh-cw" class="w-4 h-4"></i>Refresh</button>
-    <button onclick="openTerminalHint()" class="flex items-center gap-2 text-[13px] px-2 py-1.5 rounded hover:bg-stone-100"><i data-lucide="terminal" class="w-4 h-4"></i>Terminal</button>
     <div class="mt-auto text-[11px] mono text-stone-400 px-2 pt-3">project-control<br>⌘K • grid/list</div>
   </aside>
 
@@ -330,7 +329,6 @@ $("sqlInput").addEventListener("change",async e=>{
   try{const r=await fetch("/api/import",{method:"POST",body:fd});const j=await r.json();if(!r.ok)throw new Error(j.error);toast("Import OK");loadDB();}catch(err){toast(err.message);}e.target.value="";
 });
 $("logoutBtn").onclick=async()=>{await fetch("/api/logout",{method:"POST"});location.href="/login";};
-function openTerminalHint(){toast("Terminal: project-control • edit • status • logs");}
 // CMDK
 const cmdk=$("cmdk"),cmdkInput=$("cmdkInput"),cmdkList=$("cmdkList");
 function openCmdk(){cmdk.classList.remove("hidden");cmdkInput.value="";renderCmdk("");setTimeout(()=>cmdkInput.focus(),30);}
