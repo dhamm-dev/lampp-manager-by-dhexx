@@ -48,6 +48,10 @@
     <button data-tab="database" class="tabBtn flex items-center gap-2 text-[13px] px-2 py-1.5 rounded hover:bg-stone-100"><i data-lucide="database" class="w-4 h-4"></i>Database</button>
     <div class="text-[11px] font-semibold text-stone-400 uppercase tracking-wide px-2 mt-4 mb-1">Service</div>
     <div class="border border-stone-200 rounded-md p-2 space-y-2">
+      <div class="flex gap-1">
+        <button onclick="svcAll('start')" class="flex-1 text-[12px] bg-stone-900 text-white rounded py-1.5 hover:bg-stone-700 flex items-center justify-center gap-1"><i data-lucide="play" class="w-3 h-3"></i>Start All</button>
+        <button onclick="svcAll('stop')" class="flex-1 text-[12px] border border-stone-200 rounded py-1.5 hover:border-red-600 hover:text-red-600 flex items-center justify-center gap-1"><i data-lucide="square" class="w-3 h-3"></i>Stop All</button>
+      </div>
       <div class="flex items-center justify-between text-[12px]"><span class="flex items-center gap-1.5"><i data-lucide="server" class="w-3.5 h-3.5"></i>Apache</span><span id="svcApache" class="mono text-[11px]">…</span></div>
       <div class="flex gap-1">
         <button onclick="svc('apache','start')" class="flex-1 text-[12px] border border-stone-200 rounded py-1 hover:border-emerald-600 hover:text-emerald-700 flex items-center justify-center gap-1"><i data-lucide="play" class="w-3 h-3"></i>Start</button>
@@ -193,6 +197,18 @@ async function loadStatus(){
   }catch(e){}
 }
 async function svc(name,action){toast(name+" "+action+"…");try{const r=await api(`/api/service/${name}/${action}`,{method:"POST"});toast(r.ok?"OK":"Gagal — cek sudoers");loadStatus();}catch(e){toast(String(e.message||e));}}
+async function svcAll(action){
+  toast((action==="start"?"Menyalakan":"Mematikan")+" Apache + MySQL…");
+  try{
+    const r=await api(`/api/service/all/${action}`,{method:"POST"});
+    if(r.ok){toast("Apache + MySQL "+(action==="start"?"ON":"OFF"));}
+    else{
+      const gagal=Object.entries(r.results||{}).filter(([,v])=>!v.ok).map(([k])=>k).join(", ");
+      toast("Gagal ("+gagal+") — cek sudoers");
+    }
+    loadStatus();
+  }catch(e){toast(String(e.message||e));}
+}
 async function loadProjectsOrFiles(){
   const q=$("searchInput").value||"";
   if(!curPath){

@@ -306,6 +306,21 @@ def api_service(svc, action):
     return jsonify({"ok": code == 0, "output": out[-2000:], "status": service_status()})
 
 
+@app.post("/api/service/all/<action>")
+@login_required
+def api_service_all(action):
+    if action not in ("start", "stop", "restart"):
+        return jsonify({"error": "aksi tidak dikenal"}), 400
+    results = {}
+    for svc in ("apache", "mysql"):
+        code, out = run_ctl(action, svc)
+        if code != 0 and "unknown" in out.lower():
+            code, out = run_ctl(svc, action)
+        results[svc] = {"ok": code == 0, "output": out[-1000:]}
+    ok = all(v["ok"] for v in results.values())
+    return jsonify({"ok": ok, "results": results, "status": service_status()})
+
+
 # ---------- Projects ----------
 @app.get("/api/projects")
 @login_required
