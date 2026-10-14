@@ -363,9 +363,9 @@ def api_projects_create():
             "<?php\n// " + name + "\n?>\n<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
             f"<title>{name}</title></head><body><h1>{name}</h1></body></html>\n")
         (dest / "koneksi.php").write_text(
-            "<?php\n$host='localhost';$user='root';$pass='';$db='';\n"
-            "$conn = mysqli_connect($host,$user,$pass,$db);\n"
-            "if(!$conn){die('Koneksi gagal: '.mysqli_connect_error());}\n")
+            "<?php \n$host \t  = \"localhost\";\n$username = \"root\";\n"
+            "$password = \"\";\n$database = \"db_UTM\";\n\n"
+            "$koneksi = mysqli_connect($host, $username, $password, $database);\n ?>\n")
     elif template == "html":
         (dest / "index.html").write_text(
             f"<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\"><title>{name}</title></head>"
@@ -490,9 +490,9 @@ def api_files_create():
             content = ("<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
                        f"<title>{name}</title></head><body></body></html>\n")
         elif template == "koneksi":
-            content = ("<?php\n$host='localhost';$user='root';$pass='';$db='';\n"
-                       "$conn = mysqli_connect($host,$user,$pass,$db);\n"
-                       "if(!$conn){die('Koneksi gagal: '.mysqli_connect_error());}\n")
+            content = ("<?php \n$host \t  = \"localhost\";\n$username = \"root\";\n"
+                       "$password = \"\";\n$database = \"db_UTM\";\n\n"
+                       "$koneksi = mysqli_connect($host, $username, $password, $database);\n ?>\n")
         dest.write_text(content)
     return jsonify({"ok": True, "info": entry_info(dest)})
 
