@@ -9,13 +9,9 @@
 <style>
   .stack{display:grid}
   .pane{grid-area:1/1;min-width:0}
-  .pane1{transition:opacity .18s ease}
-  .pane2{opacity:0;transform:translateY(56px);pointer-events:none;transition:opacity .3s ease,transform .3s ease}
-  .stack.step2 .pane1{opacity:0;pointer-events:none}
-  .stack.step2 .pane2{opacity:1;transform:none;pointer-events:auto;transition:opacity .45s ease,transform .55s cubic-bezier(.22,.9,.24,1)}
-  .stack.leaving .pane1 .shard{animation:pecah .3s ease-in forwards;animation-delay:calc(var(--i,0)*45ms)}
-  @keyframes pecah{to{opacity:0;transform:translate(var(--dx,0px),var(--dy,12px)) rotate(var(--rr,0deg)) scale(.92)}}
-  @media (prefers-reduced-motion:reduce){.slide-track,.pane2,.pane1{transition:none}.stack.leaving .pane1 .shard{animation:none}}
+  .pane2{opacity:0;pointer-events:none}
+  .stack.step2 .pane1{visibility:hidden}
+  .stack.step2 .pane2{pointer-events:auto}
 </style>
 </head>
 <body class="bg-stone-50 text-stone-900" style="font-family:system-ui,-apple-system,'Segoe UI',sans-serif">
@@ -23,22 +19,22 @@
   <div class="w-full max-w-sm">
     <div id="slider" class="stack bg-white border border-stone-200 rounded-lg p-6">
       <!-- STEP 1: username -->
-      <div class="pane pane1">
-        <div class="shard flex items-center gap-2 mb-1" style="--i:0;--dx:-16px;--dy:-10px;--rr:-4deg">
+      <div class="pane pane1" id="pane1">
+        <div class="shard flex items-center gap-2 mb-1" data-dx="-16px" data-dy="-10px" data-rr="-4deg">
           <div class="w-8 h-8 rounded overflow-hidden bg-stone-900 text-white flex items-center justify-center text-sm font-bold shrink-0 relative"><span>L</span><img src="/static/icons/logo.png" alt="" class="absolute inset-0 w-8 h-8 object-cover" onerror="this.remove()"></div>
           <div>
             <div class="text-sm font-semibold">LAMPP Manager</div>
             <div class="text-xs text-stone-500 font-mono">localhost:8888 • htdocs/</div>
           </div>
         </div>
-        <p class="shard text-xs text-stone-500 mb-4" style="--i:1;--dx:14px;--dy:-6px;--rr:3deg">Siapa kamu?</p>
-        <label class="shard text-xs font-medium block" style="--i:2;--dx:-10px;--dy:8px;--rr:-2deg">Username</label>
-        <input id="u" class="shard mt-1 w-full border border-stone-200 rounded px-3 py-2 text-sm outline-none focus:border-stone-900" style="--i:3;--dx:0px;--dy:14px;--rr:0deg" placeholder="username" autocomplete="username" autofocus>
-        <button id="nextBtn" class="shard mt-4 w-full bg-stone-900 text-white text-sm rounded py-2 hover:bg-stone-800" style="--i:4;--dx:0px;--dy:18px;--rr:0deg">Lanjut →</button>
-        <p class="shard text-center text-[11px] text-stone-400 mt-3" style="--i:5;--dx:12px;--dy:14px;--rr:2deg">langkah 1 dari 2</p>
+        <p class="shard text-xs text-stone-500 mb-4" data-dx="14px" data-dy="-6px" data-rr="3deg">Siapa kamu?</p>
+        <label class="shard text-xs font-medium block" data-dx="-10px" data-dy="8px" data-rr="-2deg">Username</label>
+        <input id="u" class="shard mt-1 w-full border border-stone-200 rounded px-3 py-2 text-sm outline-none focus:border-stone-900" data-dx="0px" data-dy="14px" data-rr="0deg" placeholder="username" autocomplete="username" autofocus>
+        <button id="nextBtn" class="shard mt-4 w-full bg-stone-900 text-white text-sm rounded py-2 hover:bg-stone-800" data-dx="0px" data-dy="18px" data-rr="0deg">Lanjut →</button>
+        <p class="shard text-center text-[11px] text-stone-400 mt-3" data-dx="12px" data-dy="14px" data-rr="2deg">langkah 1 dari 2</p>
       </div>
       <!-- STEP 2: password -->
-      <div class="pane pane2">
+      <div class="pane pane2" id="pane2">
         <div class="flex items-center gap-2 mb-1">
           <button id="backBtn" title="Kembali" class="w-8 h-8 rounded border border-stone-200 flex items-center justify-center hover:border-stone-900 shrink-0">←</button>
           <div class="min-w-0">
@@ -57,30 +53,75 @@
   </div>
 </div>
 <script>
-const slider=document.getElementById('slider'),u=document.getElementById('u'),p=document.getElementById('p'),err=document.getElementById('err'),who=document.getElementById('whoLabel');
-const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
-let leaving=false;
-function goPass(){
+const slider=document.getElementById('slider'),pane1=document.getElementById('pane1'),pane2=document.getElementById('pane2');
+const u=document.getElementById('u'),p=document.getElementById('p'),err=document.getElementById('err'),who=document.getElementById('whoLabel');
+const shards=[...pane1.querySelectorAll('.shard')];
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const WAAPI=typeof Element!=='undefined'&&typeof document.body.animate==='function';
+let busy=false,exiting=false,running=[];
+function stopAll(){running.forEach(a=>{try{a.cancel();}catch(e){}});running=[];}
+function shardTo(el){return `translate(${el.dataset.dx||'0px'}, ${el.dataset.dy||'12px'}) rotate(${el.dataset.rr||'0deg'}) scale(.92)`;}
+async function goPass(){
   if(!u.value.trim()){u.focus();return;}
-  if(leaving)return;
+  if(busy)return;
   who.textContent=u.value.trim();
   err.classList.add('hidden');
-  if(reduceMotion){slider.classList.add('step2');p.focus();return;}
-  leaving=true;
-  slider.classList.add('leaving');
-  setTimeout(()=>{slider.classList.add('step2');setTimeout(()=>p.focus(),250);leaving=false;},360);
+  stopAll();
+  if(RM||!WAAPI){slider.classList.add('step2');pane2.style.opacity=1;pane2.style.transform='none';p.focus();return;}
+  busy=true;
+  const sh=shards.map((el,i)=>el.animate(
+    [{transform:'translate(0px, 0px) rotate(0deg) scale(1)',opacity:1},
+     {transform:shardTo(el),opacity:0}],
+    {duration:300,delay:i*45,easing:'cubic-bezier(.5,0,.8,.4)',fill:'forwards'}));
+  running.push(...sh);
+  try{await Promise.all(sh.map(a=>a.finished));}
+  catch(e){busy=false;return;}
+  slider.classList.add('step2');
+  const rise=pane2.animate(
+    [{transform:'translateY(56px)',opacity:0},{transform:'translateY(0px)',opacity:1}],
+    {duration:550,easing:'cubic-bezier(.22,.9,.24,1)',fill:'forwards'});
+  running.push(rise);
+  try{await rise.finished;}catch(e){busy=false;return;}
+  try{rise.commitStyles();rise.cancel();}catch(e){}
+  running=[];
+  busy=false;
+  setTimeout(()=>p.focus(),30);
 }
-function goUser(){
-  slider.classList.remove('step2');
-  setTimeout(()=>slider.classList.remove('leaving'),60);
+async function goUser(){
+  if(busy){stopAll();busy=false;}
+  stopAll();
   err.classList.add('hidden');
-  setTimeout(()=>u.focus(),120);
+  if(!RM&&WAAPI&&slider.classList.contains('step2')){
+    const back=pane2.animate(
+      [{transform:'translateY(0px)',opacity:1},{transform:'translateY(24px)',opacity:0}],
+      {duration:180,easing:'ease-in',fill:'forwards'});
+    try{await back.finished;}catch(e){}
+    try{back.cancel();}catch(e){}
+  }
+  slider.classList.remove('step2');
+  pane2.style.opacity='';pane2.style.transform='';
+  setTimeout(()=>u.focus(),30);
 }
 async function login(){
+  if(exiting)return;
   if(!p.value){p.focus();return;}
   err.classList.add('hidden');
   const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u.value.trim(),password:p.value})});
-  if(r.ok){location.href='/';}else{const j=await r.json();err.textContent=j.error||'gagal';err.classList.remove('hidden');p.select();}
+  if(!r.ok){const j=await r.json();err.textContent=j.error||'gagal';err.classList.remove('hidden');p.select();return;}
+  exiting=true;
+  if(RM||!WAAPI){location.href='/';return;}
+  const btn=document.getElementById('btn'),rc=btn.getBoundingClientRect();
+  const cx=rc.left+rc.width/2,cy=rc.top+rc.height/2;
+  const veil=document.createElement('div');
+  veil.style.cssText=`position:fixed;left:${cx}px;top:${cy}px;width:24px;height:24px;margin:-12px 0 0 -12px;background:#1c1917;border-radius:50%;z-index:60;pointer-events:none`;
+  document.body.appendChild(veil);
+  const scale=Math.ceil(Math.hypot(innerWidth,innerHeight)/12)+1;
+  const grow=veil.animate(
+    [{transform:'scale(0)',opacity:1},{transform:`scale(${scale})`,opacity:1}],
+    {duration:500,easing:'cubic-bezier(.5,0,.8,.4)',fill:'forwards'});
+  try{await grow.finished;}catch(e){}
+  try{sessionStorage.setItem('lm-enter','1');}catch(e){}
+  location.href='/';
 }
 document.getElementById('nextBtn').onclick=goPass;
 document.getElementById('backBtn').onclick=goUser;

@@ -17,6 +17,7 @@
 </style>
 </head>
 <body class="bg-stone-50 text-stone-900 h-screen flex flex-col overflow-hidden">
+<div id="enterVeil" style="display:none;position:fixed;left:50%;top:50%;width:200vmax;height:200vmax;margin:-100vmax 0 0 -100vmax;background:#1c1917;border-radius:50%;z-index:60;pointer-events:none"></div>
 
 <!-- TOPBAR 48px -->
 <header class="h-12 shrink-0 bg-white border-b border-stone-200 flex items-center gap-3 px-3">
@@ -362,7 +363,26 @@ function renderCmdk(q){
   cmdkList.innerHTML=rows.length?rows.map((r,i)=>`<button data-i="${i}" class="w-full text-left text-[13px] px-3 py-2 rounded hover:bg-stone-100 mono">${esc(r.label)}</button>`).join(""):`<div class="text-[13px] text-stone-400 px-3 py-4">Tidak ketemu.</div>`;
   [...cmdkList.querySelectorAll("button")].forEach(b=>b.onclick=()=>rows[+b.dataset.i].fn());
 }
-refreshAll();setInterval(loadStatus,10000);lucide.createIcons();
+async function maybeEnter(){
+  let flag=false;
+  try{flag=sessionStorage.getItem('lm-enter')==='1';sessionStorage.removeItem('lm-enter');}catch(e){}
+  if(!flag)return;
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches||typeof document.body.animate!=='function')return;
+  const veil=document.getElementById('enterVeil');
+  veil.style.display='block';
+  const shrink=veil.animate(
+    [{transform:'scale(1)',opacity:1},{transform:'scale(0)',opacity:1}],
+    {duration:650,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'});
+  const targets=[document.querySelector('aside'),document.querySelector('header'),...document.querySelectorAll('#content > *')].filter(Boolean).slice(0,10);
+  const ins=targets.map((el,i)=>el.animate(
+    [{transform:'translateY(14px)',opacity:0},{transform:'translateY(0px)',opacity:1}],
+    {duration:450,delay:150+i*55,easing:'cubic-bezier(.22,.9,.24,1)',fill:'backwards'}));
+  try{await shrink.finished;}catch(e){}
+  veil.style.display='none';
+  try{await Promise.all(ins.map(a=>a.finished));}catch(e){}
+  ins.forEach(a=>{try{a.commitStyles();a.cancel();}catch(e){}});
+}
+refreshAll().then(()=>{maybeEnter();});setInterval(loadStatus,10000);lucide.createIcons();
 </script>
 </body>
 </html>
