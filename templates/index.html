@@ -7,6 +7,7 @@
 <link rel="icon" type="image/png" href="/static/icons/favicon.png">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
+<script>try{const t=localStorage.getItem('lm-theme');if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark');}catch(e){}</script>
 <style>
   body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
   .mono{font-family:ui-monospace,"JetBrains Mono","Cascadia Code",Menlo,monospace}
@@ -14,6 +15,35 @@
   .actions{opacity:0;transition:opacity .12s}
   @media (max-width:900px){.actions{opacity:1}}
   ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#d6d3d1;border-radius:8px}
+  .dark{color-scheme:dark}
+  .dark body{background-color:#0c0c0d;color:#e7e5e4}
+  .dark .bg-white{background-color:#17171a}
+  .dark .bg-stone-50{background-color:#0c0c0d}
+  .dark .bg-stone-100{background-color:#26262b}
+  .dark .bg-stone-900{background-color:#e7e5e4}
+  .dark .border-stone-200{border-color:#2a2a2e}
+  .dark .border-stone-100{border-color:#2a2a2e}
+  .dark .border-stone-900{border-color:#e7e5e4}
+  .dark .text-stone-900{color:#f5f5f4}
+  .dark .text-stone-500{color:#a8a29e}
+  .dark .text-stone-400{color:#78716c}
+  .dark .text-stone-300{color:#44403c}
+  .dark .text-white{color:#1c1917}
+  .dark .ring-stone-900{--tw-ring-color:#e7e5e4}
+  .dark .hover\:bg-stone-100:hover{background-color:#26262b}
+  .dark .hover\:bg-stone-700:hover{background-color:#d6d3d1}
+  .dark .hover\:bg-stone-800:hover{background-color:#d6d3d1}
+  .dark .hover\:border-stone-900:hover{border-color:#e7e5e4}
+  .dark .hover\:border-stone-400:hover{border-color:#57534e}
+  .dark .focus\:border-stone-900:focus{border-color:#e7e5e4}
+  .dark .bg-emerald-50{background-color:#052e1b}
+  .dark .border-emerald-200{border-color:#065f46}
+  .dark .text-emerald-700{color:#6ee7b7}
+  .dark .bg-amber-50{background-color:#451a03}
+  .dark .border-amber-200{border-color:#92400e}
+  .dark .text-amber-700{color:#fcd34d}
+  .dark #logPre{background-color:#0c0c0d;color:#e7e5e4;border:1px solid #2a2a2e}
+  .dark ::-webkit-scrollbar-thumb{background:#3f3f46}
 </style>
 </head>
 <body class="bg-stone-50 text-stone-900 h-screen flex flex-col overflow-hidden">
@@ -37,6 +67,7 @@
     <span id="phpVer" class="hidden md:inline text-[11px] mono text-stone-500"></span>
     <span id="pillApache" class="text-[11px] mono px-2 py-1 rounded border">Apache: …</span>
     <span id="pillMysql" class="text-[11px] mono px-2 py-1 rounded border">MySQL: …</span>
+    <button id="themeBtn" title="Mode gelap/terang" class="p-1.5 border border-stone-200 rounded hover:border-stone-900"><i data-lucide="moon" class="w-4 h-4"></i></button>
     <button id="logoutBtn" title="Logout" class="p-1.5 border border-stone-200 rounded hover:border-stone-900"><i data-lucide="log-out" class="w-4 h-4"></i></button>
   </div>
 </header>
@@ -472,6 +503,9 @@ async function updateApp(){
   }catch(e){toast(e.message);}
 }
 $("logoutBtn").onclick=async()=>{await fetch("/api/logout",{method:"POST"});location.href="/login";};
+function paintThemeBtn(){$("themeBtn").innerHTML=`<i data-lucide="${document.documentElement.classList.contains("dark")?"sun":"moon"}" class="w-4 h-4"></i>`;lucide.createIcons();}
+$("themeBtn").onclick=()=>{const d=document.documentElement.classList.toggle("dark");try{localStorage.setItem("lm-theme",d?"dark":"light");}catch(e){}paintThemeBtn();};
+paintThemeBtn();
 // CMDK
 const cmdk=$("cmdk"),cmdkInput=$("cmdkInput"),cmdkList=$("cmdkList");
 function openCmdk(){cmdk.classList.remove("hidden");cmdkInput.value="";renderCmdk("");setTimeout(()=>cmdkInput.focus(),30);}
