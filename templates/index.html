@@ -404,14 +404,31 @@ $("cmdkBtn").onclick=openCmdk;
 document.addEventListener("keydown",e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==="k"){e.preventDefault();cmdk.classList.contains("hidden")?openCmdk():closeCmdk();}if(e.key==="Escape"){closeCmdk();["projectModal","fileModal","renameModal","deleteModal","dbModal"].forEach(closeModal);}});
 cmdk.addEventListener("click",e=>{if(e.target===cmdk)closeCmdk();});
 cmdkInput.addEventListener("input",()=>renderCmdk(cmdkInput.value.toLowerCase()));
+let cmdkGrepToken=0;
 function renderCmdk(q){
   const rows=[];
   projectsCache.filter(p=>!q||p.name.toLowerCase().includes(q)).slice(0,6).forEach(p=>rows.push({label:"Project: "+p.name,fn:()=>{closeCmdk();nav(p.name);}}));
   filesCache.filter(f=>!q||f.name.toLowerCase().includes(q)).slice(0,4).forEach(f=>rows.push({label:"File: "+f.name,fn:()=>{closeCmdk();dl((curPath?curPath+"/":"")+f.name);}}));
   dbCache.filter(d=>!q||d.name.toLowerCase().includes(q)).slice(0,4).forEach(d=>rows.push({label:"DB: "+d.name,fn:()=>{closeCmdk();window.open(d.phpmyadmin,"_blank");}}));
   ["start apache","stop apache","start mysql","new project"].filter(a=>!q||a.includes(q)).forEach(a=>rows.push({label:"Aksi: "+a,fn:()=>{closeCmdk();if(a==="new project")openModal("projectModal");else{const[s,v]=a.split(" ");svc(v,s);}}}));
+  paintCmdk(rows);
+  if(q.length>=3){
+    const tok=++cmdkGrepToken;
+    clearTimeout(window._gt);window._gt=setTimeout(async()=>{
+      try{
+        const j=await api("/api/grep",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({q})});
+        if(tok!==cmdkGrepToken)return;
+        (j.hits||[]).slice(0,8).forEach(h=>rows.push({label:`Isi: ${h.path}:${h.line} — ${h.text.slice(0,60)}`,fn:()=>{closeCmdk();const dir=h.path.includes("/")?h.path.rsplit("/",1)[0]:"";nav(dir);toast(`${h.path}:${h.line}`);}}));
+        if(j.truncated)rows.push({label:`…${j.hits.length} hasil pertama (dari ${j.files} file)`,fn:()=>{}});
+        paintCmdk(rows);
+      }catch(e){}
+    },400);
+  }
+}
+function paintCmdk(rows){
   cmdkList.innerHTML=rows.length?rows.map((r,i)=>`<button data-i="${i}" class="w-full text-left text-[13px] px-3 py-2 rounded hover:bg-stone-100 mono">${esc(r.label)}</button>`).join(""):`<div class="text-[13px] text-stone-400 px-3 py-4">Tidak ketemu.</div>`;
   [...cmdkList.querySelectorAll("button")].forEach(b=>b.onclick=()=>rows[+b.dataset.i].fn());
+  cmdkList._rows=rows;
 }
 async function maybeEnter(){
   let flag=false;

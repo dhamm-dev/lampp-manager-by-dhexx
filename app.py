@@ -696,6 +696,69 @@ def api_db_import():
     return jsonify({"ok": True})
 
 
+# ---------- Grep isi file ----------
+GREP_SKIP_DIRS = {".git", ".venv", "__pycache__", "node_modules", "vendor"}
+GREP_MAX_FILE = 1_000_000
+GREP_MAX_HITS = 200
+
+
+@app.post("/api/grep")
+@login_required
+def api_grep():
+    import time
+    data = request.get_json(force=True, silent=True) or {}
+    q = (data.get("q") or "").strip()
+    rel = (data.get("path") or "").strip().strip("/")
+    if len(q) < 3:
+        return jsonify({"error": "minimal 3 karakter"}), 400
+    if len(q) > 120:
+        return jsonify({"error": "query terlalu panjang"}), 400
+    try:
+        root = safe_join_htdocs(rel)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    if not root.is_dir():
+        return jsonify({"error": "folder tidak ditemukan"}), 404
+    ql = q.lower()
+    hits, files, t0 = [], 0, time.time()
+    budget = 10.0
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in GREP_SKIP_DIRS]
+        # jangan keluar jail via symlink
+        dirnames[:] = [d for d in dirnames
+                       if (Path(dirpath) / d).resolve().is_relative_to(HTDOCS.resolve())]
+        for fn in filenames:
+            if time.time() - t0 > budget or len(hits) >= GREP_MAX_HITS:
+                break
+            fp = Path(dirpath) / fn
+            try:
+                if not fp.is_file() or fp.stat().st_size > GREP_MAX_FILE:
+                    continue
+                with open(fp, "rb") as fh:
+                    head = fh.read(8192)
+                    if b"\x00" in head:
+                        continue
+                    fh.seek(0)
+                    for i, raw in enumerate(fh, 1):
+                        line = raw.decode("utf-8", errors="replace").rstrip("\n")
+                        idx = line.lower().find(ql)
+                        if idx >= 0:
+                            try:
+                                rp = fp.resolve().relative_to(HTDOCS.resolve())
+                            except ValueError:
+                                continue
+                            hits.append({"path": str(rp), "line": i,
+                                         "col": idx + 1,
+                                         "text": line.strip()[:300]})
+                            if len(hits) >= GREP_MAX_HITS:
+                                break
+                files += 1
+            except OSError:
+                continue
+    return jsonify({"hits": hits, "files": files,
+                    "truncated": len(hits) >= GREP_MAX_HITS})
+
+
 # ---------- Logs ----------
 APACHE_ERR = Path("/opt/lampp/logs/error_log")
 
