@@ -20,18 +20,18 @@
     <div id="slider" class="stack bg-white border border-stone-200 rounded-lg p-6">
       <!-- STEP 1: username -->
       <div class="pane pane1" id="pane1">
-        <div class="shard flex items-center gap-2 mb-1" data-dx="-16px" data-dy="-10px" data-rr="-4deg">
+        <div class="shard flex items-center gap-2 mb-1" data-dx="-48px" data-dy="-30px" data-rr="-10deg">
           <div class="w-8 h-8 rounded overflow-hidden bg-stone-900 text-white flex items-center justify-center text-sm font-bold shrink-0 relative"><span>L</span><img src="/static/icons/logo.png" alt="" class="absolute inset-0 w-8 h-8 object-cover" onerror="this.remove()"></div>
           <div>
             <div class="text-sm font-semibold">LAMPP Manager</div>
             <div class="text-xs text-stone-500 font-mono">localhost:8888 • htdocs/</div>
           </div>
         </div>
-        <p class="shard text-xs text-stone-500 mb-4" data-dx="14px" data-dy="-6px" data-rr="3deg">Siapa kamu?</p>
-        <label class="shard text-xs font-medium block" data-dx="-10px" data-dy="8px" data-rr="-2deg">Username</label>
-        <input id="u" class="shard mt-1 w-full border border-stone-200 rounded px-3 py-2 text-sm outline-none focus:border-stone-900" data-dx="0px" data-dy="14px" data-rr="0deg" placeholder="username" autocomplete="username" autofocus>
-        <button id="nextBtn" class="shard mt-4 w-full bg-stone-900 text-white text-sm rounded py-2 hover:bg-stone-800" data-dx="0px" data-dy="18px" data-rr="0deg">Lanjut →</button>
-        <p class="shard text-center text-[11px] text-stone-400 mt-3" data-dx="12px" data-dy="14px" data-rr="2deg">langkah 1 dari 2</p>
+        <p class="shard text-xs text-stone-500 mb-4" data-dx="44px" data-dy="-18px" data-rr="8deg">Siapa kamu?</p>
+        <label class="shard text-xs font-medium block" data-dx="-36px" data-dy="22px" data-rr="-7deg">Username</label>
+        <input id="u" class="shard mt-1 w-full border border-stone-200 rounded px-3 py-2 text-sm outline-none focus:border-stone-900" data-dx="0px" data-dy="38px" data-rr="0deg" placeholder="username" autocomplete="username" autofocus>
+        <button id="nextBtn" class="shard mt-4 w-full bg-stone-900 text-white text-sm rounded py-2 hover:bg-stone-800" data-dx="0px" data-dy="46px" data-rr="0deg">Lanjut →</button>
+        <p class="shard text-center text-[11px] text-stone-400 mt-3" data-dx="40px" data-dy="36px" data-rr="6deg">langkah 1 dari 2</p>
       </div>
       <!-- STEP 2: password -->
       <div class="pane pane2" id="pane2">
@@ -60,7 +60,6 @@ const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const WAAPI=typeof Element!=='undefined'&&typeof document.body.animate==='function';
 let busy=false,exiting=false,running=[];
 function stopAll(){running.forEach(a=>{try{a.cancel();}catch(e){}});running=[];}
-function shardTo(el){return `translate(${el.dataset.dx||'0px'}, ${el.dataset.dy||'12px'}) rotate(${el.dataset.rr||'0deg'}) scale(.92)`;}
 async function goPass(){
   if(!u.value.trim()){u.focus();return;}
   if(busy)return;
@@ -69,10 +68,14 @@ async function goPass(){
   stopAll();
   if(RM||!WAAPI){slider.classList.add('step2');pane2.style.opacity=1;pane2.style.transform='none';p.focus();return;}
   busy=true;
-  const sh=shards.map((el,i)=>el.animate(
-    [{transform:'translate(0px, 0px) rotate(0deg) scale(1)',opacity:1},
-     {transform:shardTo(el),opacity:0}],
-    {duration:300,delay:i*45,easing:'cubic-bezier(.5,0,.8,.4)',fill:'forwards'}));
+  const sh=shards.map((el,i)=>{
+    const dx=el.dataset.dx||'0px',dy=el.dataset.dy||'12px',rr=el.dataset.rr||'0deg';
+    return el.animate(
+      [{transform:'translate(0px, 0px) rotate(0deg) scale(1)',opacity:1},
+       {transform:`translate(calc(${dx} * 0.6), calc(${dy} * 0.6)) rotate(0deg) scale(.96)`,opacity:1,offset:.45},
+       {transform:`translate(${dx}, ${dy}) rotate(${rr}) scale(.9)`,opacity:0}],
+      {duration:380,delay:i*50,easing:'cubic-bezier(.2,.7,.3,1)',fill:'forwards'});
+  });
   running.push(...sh);
   try{await Promise.all(sh.map(a=>a.finished));}
   catch(e){busy=false;return;}
