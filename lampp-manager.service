@@ -9,6 +9,9 @@ EnvironmentFile=%h/Projects/lampp-manager/.env
 ExecStart=%h/Projects/lampp-manager/.venv/bin/python %h/Projects/lampp-manager/app.py
 Restart=on-failure
 RestartSec=3
+# Hanya kill PID utama saat stop/restart, JANGAN seluruh cgroup:
+# editor (Antigravity/Sublime) yang dibuka dari dashboard harus tetap hidup.
+KillMode=process
 Environment=DISPLAY=:0
 Environment=WAYLAND_DISPLAY=wayland-0
 Environment=PYTHONUNBUFFERED=1

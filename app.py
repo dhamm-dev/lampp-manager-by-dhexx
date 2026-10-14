@@ -604,9 +604,13 @@ def api_open():
         return jsonify({"error": f"editor tidak ditemukan: {binary}"}), 500
     env = dict(os.environ)
     try:
-        subprocess.Popen([binary, str(target)], env=env,
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                         start_new_session=True)
+        # JANGAN start_new_session: sesi logind baru bikin app Electron
+        # (Antigravity) mati diam-diam; tanpa setsid ia jalan normal.
+        # Editor tetap selamat dari restart service karena unit pakai
+        # KillMode=process (hanya PID utama yang di-kill).
+        proc = subprocess.Popen([binary, str(target)], env=env,
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        print(f"[open] editor={editor} target={target} pid={proc.pid}", flush=True)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     return jsonify({"ok": True})
