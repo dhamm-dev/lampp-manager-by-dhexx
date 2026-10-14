@@ -2,6 +2,7 @@
 """LAMPP Project Controller — Flask backend (Design A, locked plan)."""
 import os
 import re
+import json
 import shutil
 import subprocess
 import secrets
@@ -327,6 +328,7 @@ def api_service_all(action):
 def api_projects():
     q = (request.args.get("q") or "").lower()
     items = []
+    pins = load_pins()
     try:
         for p in sorted(HTDOCS.iterdir(), key=lambda x: x.name.lower()):
             if not p.is_dir():
@@ -335,10 +337,12 @@ def api_projects():
                 continue
             info = entry_info(p)
             info["protected"] = p.name in PROTECTED_TOP
+            info["pinned"] = p.name in pins
             info["url"] = f"http://localhost/{p.name}"
             items.append(info)
     except OSError as e:
         return jsonify({"error": str(e)}), 500
+    items.sort(key=lambda x: (not x["pinned"], x["name"].lower()))
     return jsonify({"items": items})
 
 
@@ -757,6 +761,93 @@ def api_grep():
                 continue
     return jsonify({"hits": hits, "files": files,
                     "truncated": len(hits) >= GREP_MAX_HITS})
+
+
+# ---------- Pin + bulk ----------
+PINS_FILE = Path(__file__).parent / ".pins.json"
+
+
+def load_pins() -> set:
+    try:
+        return set(json.load(open(PINS_FILE)))
+    except (OSError, ValueError):
+        return set()
+
+
+def save_pins(pins: set):
+    json.dump(sorted(pins), open(PINS_FILE, "w"))
+
+
+@app.get("/api/pins")
+@login_required
+def api_pins():
+    return jsonify({"pins": sorted(load_pins())})
+
+
+@app.post("/api/pins")
+@login_required
+def api_pins_toggle():
+    data = request.get_json(force=True, silent=True) or {}
+    name = (data.get("name") or "").strip()
+    if not VALID_NAME.match(name) or not (HTDOCS / name).is_dir():
+        return jsonify({"error": "project tidak valid"}), 400
+    pins = load_pins()
+    if data.get("pin"):
+        pins.add(name)
+    else:
+        pins.discard(name)
+    save_pins(pins)
+    return jsonify({"ok": True, "pins": sorted(pins)})
+
+
+def _check_bulk_names(names):
+    clean = []
+    for n in names or []:
+        n = (n or "").strip()
+        if not VALID_NAME.match(n):
+            return None, f"nama tidak valid: {n}"
+        if n in PROTECTED_TOP:
+            return None, f"folder sistem dilindungi: {n}"
+        if not (HTDOCS / n).is_dir():
+            return None, f"tidak ditemukan: {n}"
+        clean.append(n)
+    if not clean:
+        return None, "tidak ada project dipilih"
+    return clean, None
+
+
+@app.post("/api/projects/bulk-delete")
+@login_required
+def api_bulk_delete():
+    data = request.get_json(force=True, silent=True) or {}
+    clean, err = _check_bulk_names(data.get("names"))
+    if err:
+        return jsonify({"error": err}), 400
+    for n in clean:
+        shutil.rmtree(HTDOCS / n)
+    pins = load_pins() - set(clean)
+    save_pins(pins)
+    return jsonify({"ok": True, "deleted": clean})
+
+
+@app.post("/api/projects/bulk-duplicate")
+@login_required
+def api_bulk_duplicate():
+    data = request.get_json(force=True, silent=True) or {}
+    clean, err = _check_bulk_names(data.get("names"))
+    if err:
+        return jsonify({"error": err}), 400
+    made = []
+    for n in clean:
+        base = f"{n}-copy"
+        dst = HTDOCS / base
+        i = 2
+        while dst.exists():
+            dst = HTDOCS / f"{base}-{i}"
+            i += 1
+        shutil.copytree(HTDOCS / n, dst)
+        made.append(dst.name)
+    return jsonify({"ok": True, "made": made})
 
 
 # ---------- Backup ----------
