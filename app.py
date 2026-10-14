@@ -759,6 +759,103 @@ def api_grep():
                     "truncated": len(hits) >= GREP_MAX_HITS})
 
 
+# ---------- Backup ----------
+BACKUP_DIR = Path.home() / "Backups" / "lampp-manager"
+BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+MYSQLDUMP_BIN = "/opt/lampp/bin/mysqldump"
+VALID_BACKUP_FILE = re.compile(r"^[A-Za-z0-9._\-]+\.(zip|sql)$")
+
+
+def _backup_path(name: str) -> Path:
+    if not VALID_BACKUP_FILE.match(name):
+        raise ValueError("nama file backup tidak valid")
+    p = (BACKUP_DIR / name).resolve()
+    if p.parent != BACKUP_DIR.resolve() or not p.is_file():
+        raise ValueError("file backup tidak ditemukan")
+    return p
+
+
+@app.post("/api/backup")
+@login_required
+def api_backup():
+    data = request.get_json(force=True, silent=True) or {}
+    project = (data.get("project") or "").strip()
+    db = (data.get("db") or "").strip()
+    if not project and not db:
+        return jsonify({"error": "pilih project dan/atau database"}), 400
+    ts = datetime.now().strftime("%Y%m%d-%H%M")
+    made = []
+    if project:
+        if not VALID_NAME.match(project):
+            return jsonify({"error": "nama project tidak valid"}), 400
+        src = HTDOCS / project
+        if not src.is_dir():
+            return jsonify({"error": "project tidak ditemukan"}), 404
+        base = BACKUP_DIR / f"project__{project}__{ts}"
+        try:
+            import shutil as _sh
+            out = _sh.make_archive(str(base), "zip", root_dir=str(HTDOCS), base_dir=project)
+            made.append(Path(out).name)
+        except Exception as e:
+            return jsonify({"error": f"gagal zip: {e}"}), 500
+    if db:
+        if not VALID_DB.match(db):
+            return jsonify({"error": "nama DB tidak valid"}), 400
+        dest = BACKUP_DIR / f"db__{db}__{ts}.sql"
+        try:
+            with open(dest, "w") as fh:
+                r = subprocess.run([MYSQLDUMP_BIN, "-u", "root", db],
+                                   stdout=fh, stderr=subprocess.PIPE,
+                                   text=True, timeout=180)
+            if r.returncode != 0:
+                try:
+                    dest.unlink()
+                except OSError:
+                    pass
+                return jsonify({"error": r.stderr.strip()[-500:] or "mysqldump gagal"}), 400
+            made.append(dest.name)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    return jsonify({"ok": True, "files": made})
+
+
+@app.get("/api/backups")
+@login_required
+def api_backups():
+    items = []
+    try:
+        for p in sorted(BACKUP_DIR.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True):
+            if p.is_file() and VALID_BACKUP_FILE.match(p.name):
+                st = p.stat()
+                items.append({"name": p.name, "size": st.st_size,
+                              "size_h": human_size(st.st_size),
+                              "mtime_h": datetime.fromtimestamp(st.st_mtime).strftime("%d %b %H:%M")})
+    except OSError as e:
+        return jsonify({"error": str(e)}), 500
+    return jsonify({"items": items, "dir": str(BACKUP_DIR)})
+
+
+@app.get("/api/backups/download")
+@login_required
+def api_backups_download():
+    try:
+        target = _backup_path((request.args.get("f") or ""))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+    return send_file(str(target), as_attachment=True)
+
+
+@app.delete("/api/backups")
+@login_required
+def api_backups_delete():
+    try:
+        target = _backup_path((request.args.get("f") or ""))
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+    target.unlink()
+    return jsonify({"ok": True})
+
+
 # ---------- Logs ----------
 APACHE_ERR = Path("/opt/lampp/logs/error_log")
 
