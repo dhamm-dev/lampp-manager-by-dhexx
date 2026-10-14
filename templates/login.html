@@ -113,16 +113,13 @@ async function login(){
   if(!r.ok){const j=await r.json();err.textContent=j.error||'gagal';err.classList.remove('hidden');p.select();return;}
   exiting=true;
   if(RM||!WAAPI){location.href='/';return;}
-  const btn=document.getElementById('btn'),rc=btn.getBoundingClientRect();
-  const cx=rc.left+rc.width/2,cy=rc.top+rc.height/2;
-  const veil=document.createElement('div');
-  veil.style.cssText=`position:fixed;left:${cx}px;top:${cy}px;width:24px;height:24px;margin:-12px 0 0 -12px;background:#1c1917;border-radius:50%;z-index:60;pointer-events:none`;
-  document.body.appendChild(veil);
-  const scale=Math.ceil(Math.hypot(innerWidth,innerHeight)/12)+1;
-  const grow=veil.animate(
-    [{transform:'scale(0)',opacity:1},{transform:`scale(${scale})`,opacity:1}],
-    {duration:500,easing:'cubic-bezier(.5,0,.8,.4)',fill:'forwards'});
-  try{await grow.finished;}catch(e){}
+  const wipe=document.createElement('div');
+  wipe.style.cssText='position:fixed;inset:0;background:#1c1917;z-index:60;pointer-events:none;transform:translateY(100%)';
+  document.body.appendChild(wipe);
+  const cover=wipe.animate(
+    [{transform:'translateY(100%)'},{transform:'translateY(0%)'}],
+    {duration:450,easing:'cubic-bezier(.6,0,.2,1)',fill:'forwards'});
+  try{await cover.finished;}catch(e){}
   try{sessionStorage.setItem('lm-enter','1');}catch(e){}
   location.href='/';
 }
