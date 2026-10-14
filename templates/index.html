@@ -70,6 +70,7 @@
     <div class="text-[11px] font-semibold text-stone-400 uppercase tracking-wide px-2 mt-4 mb-1">Aksi</div>
     <button onclick="openModal('projectModal')" class="flex items-center gap-2 text-[13px] px-2 py-1.5 rounded border border-stone-200 hover:border-stone-900"><i data-lucide="plus" class="w-4 h-4"></i>New Project</button>
     <button onclick="refreshAll()" class="flex items-center gap-2 text-[13px] px-2 py-1.5 rounded hover:bg-stone-100"><i data-lucide="refresh-cw" class="w-4 h-4"></i>Refresh</button>
+    <button onclick="updateApp()" class="flex items-center gap-2 text-[13px] px-2 py-1.5 rounded hover:bg-stone-100"><i data-lucide="arrow-down-to-line" class="w-4 h-4"></i>Update</button>
     <div class="mt-auto text-[11px] mono text-stone-400 px-2 pt-3">project-control<br>⌘K • grid/list</div>
   </aside>
 
@@ -458,6 +459,18 @@ $("sqlInput").addEventListener("change",async e=>{
   const fd=new FormData();fd.append("db",db);fd.append("file",f);
   try{const r=await fetch("/api/import",{method:"POST",body:fd});const j=await r.json();if(!r.ok)throw new Error(j.error);toast("Import OK");loadDB();}catch(err){toast(err.message);}e.target.value="";
 });
+async function updateApp(){
+  if(!confirm("Cek update dari GitHub dan restart service?"))return;
+  toast("Cek update…");
+  try{
+    const r=await api("/api/update",{method:"POST"});
+    if(!r.updated){toast("Sudah terbaru ("+(r.current||"")+")");return;}
+    toast("Terupdate — restart…");
+    for(let i=0;i<30;i++){await new Promise(x=>setTimeout(x,1000));
+      try{const m=await (await fetch("/api/me")).json();if(m){toast("Service kembali online");refreshAll();return;}}catch(e){}}
+    toast("Belum online — cek project-control logs");
+  }catch(e){toast(e.message);}
+}
 $("logoutBtn").onclick=async()=>{await fetch("/api/logout",{method:"POST"});location.href="/login";};
 // CMDK
 const cmdk=$("cmdk"),cmdkInput=$("cmdkInput"),cmdkList=$("cmdkList");

@@ -947,6 +947,37 @@ def api_backups_delete():
     return jsonify({"ok": True})
 
 
+# ---------- Self update ----------
+REPO_DIR = Path(__file__).parent
+
+
+@app.post("/api/update")
+@login_required
+def api_update():
+    def git(*args, timeout=60):
+        r = subprocess.run(["git", *args], cwd=str(REPO_DIR),
+                           capture_output=True, text=True, timeout=timeout)
+        return r.returncode, (r.stdout + r.stderr).strip()[-2000:]
+    code, out = git("fetch", "origin")
+    if code != 0:
+        return jsonify({"error": f"fetch gagal: {out[-500:]}"}), 500
+    code, behind = git("rev-list", "--count", "HEAD..origin/main")
+    if code != 0:
+        return jsonify({"error": f"cek gagal: {behind[-500:]}"}), 500
+    if behind.strip() == "0":
+        _, cur = git("rev-parse", "--short", "HEAD")
+        return jsonify({"ok": True, "updated": False, "current": cur.strip(),
+                        "output": "sudah terbaru"})
+    code, pulled = git("pull", "--ff-only", "origin", "main")
+    if code != 0:
+        return jsonify({"error": f"pull gagal: {pulled[-500:]}"}), 500
+    # restart terjadwal: response sempat terkirim dulu
+    subprocess.Popen(["sh", "-c", "sleep 2; systemctl --user restart lampp-manager"],
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return jsonify({"ok": True, "updated": True, "output": pulled[-1500:],
+                    "note": "service restart dalam 2 detik"})
+
+
 # ---------- Logs ----------
 APACHE_ERR = Path("/opt/lampp/logs/error_log")
 
