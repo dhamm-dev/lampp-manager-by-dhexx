@@ -23,6 +23,12 @@ Built with Flask. Stays running even when Apache is down, so you can always star
 - **Simple auth** — single local user, scrypt-hashed password, session cookies
 - **`project-control` CLI** — open the dashboard, edit projects, check status, tail logs from the terminal
 - **Autostart** — `systemd --user` service, Wayland/X11 aware
+- **Log viewer** — Apache `error_log` (+ MySQL `.err` with one extra sudoers line), auto-refresh, download
+- **Content search** — grep across all projects integrated into `⌘K`, with file:line hits
+- **One-click backup** — zip project + `mysqldump` database to `~/Backups/lampp-manager/`, download/delete from dashboard
+- **Pin + bulk actions** — pin frequent projects to top, multi-select delete/duplicate/backup
+- **Self update** — `git pull` from the dashboard with scheduled service restart
+- **Dark mode** — toggle with `localStorage` persistence, follows system by default
 
 ## Quick start
 
@@ -114,6 +120,7 @@ lampp-manager/
 ├── project-control           # CLI shortcut (source; installed to ~/.local/bin/)
 ├── lampp-manager.service     # systemd --user unit (source; installed to ~/.config/systemd/user/)
 ├── sudoers-lampp-manager     # scoped NOPASSWD rule (source; installed to /etc/sudoers.d/)
+├── lampp-autostart.service   # optional: start Apache+MySQL at boot (system unit, needs root)
 ├── requirements.txt
 ├── .env.example
 └── README.md
@@ -132,6 +139,15 @@ lampp-manager/
 
 - Web terminal drawer (scoped command runner: `ls`, `php`, `mysql -e`, …)
 - Table-level database browser (currently delegated to phpMyAdmin)
+
+## LAMPP autostart at boot (optional)
+
+```bash
+sudo cp ~/Projects/lampp-manager/lampp-autostart.service /etc/systemd/system/lampp-autostart.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now lampp-autostart
+systemctl is-enabled lampp-autostart   # harus: enabled
+```
 
 ## License
 

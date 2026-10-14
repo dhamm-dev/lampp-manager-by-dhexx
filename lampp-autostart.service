@@ -1,0 +1,14 @@
+[Unit]
+Description=XAMPP LAMPP autostart (Apache + MySQL)
+After=network.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/opt/lampp/ctlscript.sh start apache
+ExecStart=/opt/lampp/ctlscript.sh start mysql
+ExecStop=/opt/lampp/ctlscript.sh stop mysql
+ExecStop=/opt/lampp/ctlscript.sh stop apache
+
+[Install]
+WantedBy=multi-user.target
