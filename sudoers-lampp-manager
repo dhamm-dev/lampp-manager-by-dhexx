@@ -4,5 +4,5 @@
 #   sudo chmod 440 /etc/sudoers.d/lampp-manager
 #   sudo visudo -c
 dhexx ALL=(root) NOPASSWD: /opt/lampp/ctlscript.sh *
-# Opsional (biar tab Logs bisa baca error log MySQL yang permission 660):
-# dhexx ALL=(root) NOPASSWD: /usr/bin/tail -n * /opt/lampp/var/mysql/*.err
+# Biar tab Logs bisa baca error log MySQL yang permission 660:
+dhexx ALL=(root) NOPASSWD: /usr/bin/tail -n * /opt/lampp/var/mysql/*.err
