@@ -47,6 +47,7 @@
     <div class="text-[11px] font-semibold text-stone-400 uppercase tracking-wide px-2 mb-1">Menu</div>
     <button data-tab="projects" class="tabBtn flex items-center gap-2 text-[13px] px-2 py-1.5 rounded bg-stone-900 text-white"><i data-lucide="folder" class="w-4 h-4"></i>Projects</button>
     <button data-tab="database" class="tabBtn flex items-center gap-2 text-[13px] px-2 py-1.5 rounded hover:bg-stone-100"><i data-lucide="database" class="w-4 h-4"></i>Database</button>
+    <button data-tab="logs" class="tabBtn flex items-center gap-2 text-[13px] px-2 py-1.5 rounded hover:bg-stone-100"><i data-lucide="scroll-text" class="w-4 h-4"></i>Logs</button>
     <div class="text-[11px] font-semibold text-stone-400 uppercase tracking-wide px-2 mt-4 mb-1">Service</div>
     <div class="border border-stone-200 rounded-md p-2 space-y-2">
       <div class="flex gap-1">
@@ -102,6 +103,31 @@
         </div>
       </div>
       <div id="dbContent" class="flex-1 overflow-y-auto p-4"></div>
+    </section>
+
+    <!-- LOGS TAB -->
+    <section id="tab-logs" class="flex-1 hidden flex-col min-h-0">
+      <div class="px-4 py-2.5 border-b border-stone-200 bg-white flex items-center gap-2 flex-wrap">
+        <span class="text-[13px] font-semibold">Logs</span>
+        <div class="flex border border-stone-200 rounded-md overflow-hidden">
+          <button id="logSrcApache" onclick="setLogSrc('apache')" class="text-[12px] px-3 py-1.5 bg-stone-900 text-white mono">Apache</button>
+          <button id="logSrcMysql" onclick="setLogSrc('mysql')" class="text-[12px] px-3 py-1.5 bg-white mono">MySQL</button>
+        </div>
+        <select id="logLines" onchange="loadLogs()" class="text-[12px] border border-stone-200 rounded-md px-2 py-1.5 mono bg-white">
+          <option value="100">100 baris</option>
+          <option value="200" selected>200 baris</option>
+          <option value="500">500 baris</option>
+        </select>
+        <label class="text-[12px] flex items-center gap-1.5 text-stone-500"><input id="logAuto" type="checkbox" checked class="accent-stone-900">auto 5s</label>
+        <div class="ml-auto flex gap-2">
+          <button onclick="loadLogs()" class="text-[13px] border border-stone-200 rounded-md px-3 py-1.5 flex items-center gap-1 hover:border-stone-900"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>Refresh</button>
+          <button onclick="downloadLogs()" class="text-[13px] border border-stone-200 rounded-md px-3 py-1.5 flex items-center gap-1 hover:border-stone-900"><i data-lucide="download" class="w-3.5 h-3.5"></i>.log</button>
+        </div>
+      </div>
+      <div class="flex-1 overflow-y-auto p-4 min-h-0">
+        <div id="logMeta" class="text-[11px] mono text-stone-400 mb-2"></div>
+        <pre id="logPre" class="bg-stone-900 text-stone-100 text-[12px] mono rounded-lg p-4 overflow-x-auto whitespace-pre-wrap break-all min-h-40">Pilih tab Logs untuk memuat…</pre>
+      </div>
     </section>
 
     <!-- STATUSBAR -->
@@ -320,8 +346,32 @@ document.querySelectorAll(".tabBtn").forEach(b=>b.onclick=()=>{
   b.className="tabBtn flex items-center gap-2 text-[13px] px-2 py-1.5 rounded bg-stone-900 text-white";
   const t=b.dataset.tab;$("tab-projects").classList.toggle("hidden",t!=="projects");$("tab-projects").classList.toggle("flex",t==="projects");
   $("tab-database").classList.toggle("hidden",t!=="database");$("tab-database").classList.toggle("flex",t==="database");
-  if(t==="database")loadDB();lucide.createIcons();
+  $("tab-logs").classList.toggle("hidden",t!=="logs");$("tab-logs").classList.toggle("flex",t==="logs");
+  if(t==="database")loadDB();if(t==="logs")loadLogs();lucide.createIcons();
 });
+let logSrc="apache",logTimer=null,logCache=[];
+function setLogSrc(s){logSrc=s;
+  $("logSrcApache").className="text-[12px] px-3 py-1.5 mono "+(s==="apache"?"bg-stone-900 text-white":"bg-white");
+  $("logSrcMysql").className="text-[12px] px-3 py-1.5 mono "+(s==="mysql"?"bg-stone-900 text-white":"bg-white");
+  loadLogs();}
+async function loadLogs(){
+  const n=$("logLines").value;
+  try{
+    const j=await api(`/api/logs/tail?src=${logSrc}&lines=${n}`);
+    logCache=j.lines||[];
+    $("logMeta").textContent=`${j.path||""} • ${j.count||0} baris • via ${j.via||"?"}`;
+    $("logPre").textContent=logCache.length?logCache.join("\n"):(j.error||"Log kosong.");
+    if(j.error&&!logCache.length)$("logMeta").textContent+=" • "+j.error;
+  }catch(e){$("logPre").textContent="Gagal memuat log: "+e.message;}
+  clearInterval(logTimer);
+  if($("logAuto").checked)logTimer=setInterval(()=>{if(!$("tab-logs").classList.contains("hidden"))loadLogs();},5000);
+}
+function downloadLogs(){
+  const blob=new Blob([logCache.join("\n")],{type:"text/plain"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download=`${logSrc}-log.txt`;a.click();URL.revokeObjectURL(a.href);
+}
+$("logAuto").addEventListener("change",loadLogs);
 async function loadDB(){
   const q=$("dbSearch").value||"";
   try{

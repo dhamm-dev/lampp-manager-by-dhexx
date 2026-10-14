@@ -696,6 +696,74 @@ def api_db_import():
     return jsonify({"ok": True})
 
 
+# ---------- Logs ----------
+APACHE_ERR = Path("/opt/lampp/logs/error_log")
+
+
+def _mysql_err_path() -> Path:
+    import socket
+    return Path(f"/opt/lampp/var/mysql/{socket.gethostname()}.err")
+
+
+def tail_file(path: Path, n: int, timeout=15):
+    """Tail hemat memori (baca mundur per blok). Kembalikan (lines, via).
+    Coba baca langsung, fallback sudo -n tail, terakhir error ramah."""
+    n = max(1, min(n, 1000))
+    try:
+        with open(path, "rb") as f:
+            f.seek(0, 2)
+            size = f.tell()
+            buf, pos = b"", size
+            while pos > 0 and buf.count(b"\n") <= n:
+                step = min(65536, pos)
+                pos -= step
+                f.seek(pos)
+                buf = f.read(step) + buf
+        text = buf.decode("utf-8", errors="replace")
+        return text.splitlines()[-n:], "direct", None
+    except PermissionError:
+        pass
+    except OSError as e:
+        return [], "none", f"tidak bisa baca: {e}"
+    try:
+        r = subprocess.run(["sudo", "-n", "tail", "-n", str(n), str(path)],
+                           capture_output=True, text=True, timeout=timeout)
+        if r.returncode == 0:
+            return r.stdout.splitlines()[-n:], "sudo", None
+        return [], "none", ("butuh akses root — tambah ke sudoers: "
+                            f"dhexx ALL=(root) NOPASSWD: /usr/bin/tail -n * {path.parent}/*.err")
+    except Exception as e:
+        return [], "none", str(e)
+
+
+@app.get("/api/logs/sources")
+@login_required
+def api_logs_sources():
+    def info(p: Path):
+        return {"path": str(p), "exists": p.exists(),
+                "readable": os.access(p, os.R_OK)}
+    return jsonify({"apache": info(APACHE_ERR), "mysql": info(_mysql_err_path())})
+
+
+@app.get("/api/logs/tail")
+@login_required
+def api_logs_tail():
+    src = request.args.get("src", "apache")
+    try:
+        n = int(request.args.get("lines", "200"))
+    except ValueError:
+        n = 200
+    path = APACHE_ERR if src == "apache" else _mysql_err_path()
+    if not path.exists():
+        return jsonify({"lines": [], "via": "none",
+                        "error": f"file tidak ada: {path}"})
+    lines, via, err = tail_file(path, n)
+    out = {"lines": lines, "via": via, "path": str(path), "count": len(lines)}
+    if err:
+        out["error"] = err
+    return jsonify(out)
+
+
 if __name__ == "__main__":
     print(f"LAMPP Manager -> http://localhost:{PORT}  (htdocs={HTDOCS})")
     app.run(host="127.0.0.1", port=PORT, debug=False)
