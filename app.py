@@ -333,6 +333,8 @@ def api_projects():
         for p in sorted(HTDOCS.iterdir(), key=lambda x: x.name.lower()):
             if not p.is_dir():
                 continue
+            if p.name in PROTECTED_TOP:
+                continue  # sembunyikan folder bawaan LAMPP
             if q and q not in p.name.lower():
                 continue
             info = entry_info(p)
@@ -437,8 +439,11 @@ def api_files():
     if target.is_file():
         return jsonify({"file": entry_info(target)})
     items = []
+    hide_system = target == HTDOCS.resolve() or target == HTDOCS
     try:
         for p in sorted(target.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower())):
+            if hide_system and p.name in PROTECTED_TOP:
+                continue  # sembunyikan file bawaan LAMPP di root htdocs
             if q and q not in p.name.lower():
                 continue
             items.append(entry_info(p))
